@@ -7,6 +7,8 @@ using UnityEngine;
 
 public class DatabaseManager : MonoBehaviour
 {
+    private Dictionary<int ,Movie> plsWork = new Dictionary<int ,Movie>();
+
     private void Start()
     {
         GetFile();
@@ -26,7 +28,15 @@ public class DatabaseManager : MonoBehaviour
 
             sr = File.OpenText(path);
 
-            File.ReadAllLines(path).ToList().ForEach(Console.WriteLine);
+            //plsWork.Add()
+
+            /*List<string> kekusTestus = new List<string>();
+            kekusTestus = File.ReadAllLines(path).ToList();
+            */
+            /*foreach(string kek in kekusTestus)
+            {
+                Debug.Log(kek);
+            }*/
         }
         catch (FileNotFoundException e)
         {
