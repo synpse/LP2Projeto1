@@ -17,7 +17,7 @@ public class DatabaseManager : MonoBehaviour
     private void GetFile()
     {
         StreamReader sr = null;
-
+        
         try
         {
             string appDataFolder =
@@ -28,12 +28,21 @@ public class DatabaseManager : MonoBehaviour
 
             sr = File.OpenText(path);
 
+            /*List<string> kekusTestus = new List<string>();
+            kekusTestus = File.ReadAllLines(path).ToList();*/         
+              
             //plsWork.Add()
 
-            /*List<string> kekusTestus = new List<string>();
+            List<string> kekusTestus = new List<string>();
             kekusTestus = File.ReadAllLines(path).ToList();
-            */
-            /*foreach(string kek in kekusTestus)
+
+            foreach (string line in kekusTestus)
+            {
+                string[] values = line.Split(' ');
+                Debug.Log(values);
+            }
+
+            /*foreach (string kek in kekusTestus)
             {
                 Debug.Log(kek);
             }*/
