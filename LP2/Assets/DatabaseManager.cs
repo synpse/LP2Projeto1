@@ -1,70 +1,110 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class DatabaseManager : MonoBehaviour
 {
-    private Dictionary<int ,Movie> plsWork = new Dictionary<int ,Movie>();
+    [SerializeField]
+    private Text textBox;
+
+    [SerializeField]
+    private List<string> lines;
+
+    private const string appName = "MyIMDBSearcher";
+    private const string fileTitleBasics = "title.basics.tsv.gz";
+    private const string fileTitleRatings = "title.ratings.tsv.gz";
+
+    private string directoryPath;
 
     private void Start()
     {
-        GetFile();
+        Initialize();
     }
 
-    private void GetFile()
+    private void Update()
     {
-        StreamReader sr = null;
-        
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+            DecompressAndRead(fileTitleBasicsFull);
+        }
+    }
+
+    private void Initialize()
+    {
+        directoryPath = Path.Combine(
+            Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData), appName);
+    }
+
+    public void DecompressAndRead(string filePath)
+    {
+        GZipStream gzs = null;
+
         try
         {
-            string appDataFolder =
-                Environment.GetFolderPath(
-                Environment.SpecialFolder.ApplicationData);
+            gzs = new GZipStream(
+                File.OpenRead(filePath),
+                CompressionMode.Decompress);
 
-            string path = $@"{appDataFolder}\..\Local\MyIMDBSearcher\data.tsv";
+            lines = ReadLines(gzs).ToList();
 
-            sr = File.OpenText(path);
-
-            /*List<string> kekusTestus = new List<string>();
-            kekusTestus = File.ReadAllLines(path).ToList();*/         
-              
-            //plsWork.Add()
-
-            List<string> kekusTestus = new List<string>();
-            kekusTestus = File.ReadAllLines(path).ToList();
-
-            foreach (string line in kekusTestus)
+            foreach (string line in lines)
             {
-                string[] values = line.Split(' ');
-                Debug.Log(values);
+                textBox.text += line + "\n";
             }
 
-            /*foreach (string kek in kekusTestus)
-            {
-                Debug.Log(kek);
-            }*/
         }
         catch (FileNotFoundException e)
         {
-            Debug.LogWarning(e);
+            Debug.LogWarning($"FILE NOT FOUND! " +
+                $"Expected file location: {filePath}" +
+                $"\nERROR: {e}");
         }
         catch (IOException e)
         {
-            Debug.LogWarning(e);
+            Debug.LogException(e);
         }
         catch (Exception e)
         {
-            Debug.LogError(e);
+            Debug.LogException(e);
         }
         finally
         {
-            if (sr != null)
+            if (gzs != null)
             {
-                sr.Close();
+                gzs.Close();
             }
+        }
+    }
+
+    public IEnumerable<string> ReadLines(GZipStream gzs)
+    {
+        using (StreamReader reader = new StreamReader(gzs))
+        {
+            string line;
+
+            for (int i = 0; i < 100; i++)
+            {
+                line = reader.ReadLine();
+
+                if (i > 5)
+                {
+                    yield return line;
+                }
+            }
+
+            /*
+            while ((line = reader.ReadLine()) != null)
+            {
+                yield return line;
+            }
+            */
         }
     }
 }
