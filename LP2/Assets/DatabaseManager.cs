@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -32,34 +31,38 @@ public class DatabaseManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyUp(KeyCode.Space))
-        {           
-            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-            DecompressAndRead(fileTitleBasicsFull);
-            x += 100;
-            y += 100;
-            
-            Debug.Log(x);
-            Debug.Log(y);
-        }
-        if (Input.GetKeyUp(KeyCode.Backspace))
-        {
-            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-            DecompressAndRead(fileTitleBasicsFull);
-            if(x <= 0)
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {   
+            if (x <= 0)
             {
-                x = 0;
+                string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+                DecompressAndRead(fileTitleBasicsFull);
+
+                x = 1;
                 y = 100;
             }
             else
             {
-                x -= 100;
-                y -= 100;
-            }
-            
+                x += 100;
+                y += 100;
 
-            Debug.Log(x);
-            Debug.Log(y);
+                string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+                DecompressAndRead(fileTitleBasicsFull);
+            }
+        }
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            x -= 100;
+            y -= 100;
+
+            if (x < 0)
+            {
+                x += 100;
+                y += 100;
+            }
+
+            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+            DecompressAndRead(fileTitleBasicsFull);
         }
     }
 
@@ -76,8 +79,6 @@ public class DatabaseManager : MonoBehaviour
 
         try
         {
-            //List<string> lines;
-
             gzs = new GZipStream(
                 File.OpenRead(filePath),
                 CompressionMode.Decompress);
@@ -127,15 +128,15 @@ public class DatabaseManager : MonoBehaviour
             while((line = reader.ReadLine()) != null && i <= y)
             {
                 i++;
+
+                line = line.Replace("\t", " ").TrimSpaces().FormatString(",");
+
                 if (i >= x && i <= y)
                 {
                     Debug.Log(line);
                     yield return line;
                 }
-
-            }
-            
+            }         
         }
     }
-
 }
