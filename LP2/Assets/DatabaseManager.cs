@@ -14,143 +14,107 @@ public class DatabaseManager : MonoBehaviour
     [SerializeField]
     private InputField inputField;
 
-    [SerializeField]
-    private List<string> lines;
-
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
     private const string fileTitleRatings = "title.ratings.tsv.gz";
 
-    private int x = 0;
-    private int y = 100;
-
     private string directoryPath;
 
+    private Dictionary<string, string[]> dbDict;
+
     private void Start()
-    {
-        
+    {     
         Initialize();
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {   
-            if (x <= 0)
-            {
-                string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-                DecompressAndRead(fileTitleBasicsFull);
-
-                x = 1;
-                y = 100;
-            }
-            else
-            {
-                x += 100;
-                y += 100;
-
-                string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-                DecompressAndRead(fileTitleBasicsFull);
-            }
-        }
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            x -= 100;
-            y -= 100;
+            string fileTitleBasicsFull = 
+                Path.Combine(directoryPath, fileTitleBasics);
 
-            if (x < 0)
-            {
-                x += 100;
-                y += 100;
-            }
+            if (dbDict == null)
+                DecompressAndCopyToDictionary(fileTitleBasicsFull);
 
-            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-            DecompressAndRead(fileTitleBasicsFull);
-        }
-        if (Input.GetKeyDown(KeyCode.LeftShift))
-        {
-            Debug.Log(inputField.text);
-
-            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
-            DecompressAndFetch(fileTitleBasicsFull);
+            GetAllValues();
         }
     }
 
     private void Initialize()
     {
+        inputField.onValueChanged.AddListener(delegate {ValueChangeCheck();});
+
         directoryPath = Path.Combine(
             Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData), appName);
     }
 
-    public void DecompressAndRead(string filePath)
+    private void ValueChangeCheck()
     {
-        GZipStream gzs = null;
-
-        try
+        if (inputField.text != null)
         {
-            gzs = new GZipStream(
-                File.OpenRead(filePath),
-                CompressionMode.Decompress);
-            
             textBox.text = "";
-            //gzs.Position = x;
-            lines = ReadLines(gzs).ToList();
 
-            
-
-            foreach (string line in lines)
-            {
-                textBox.text += line + "\n";
-            }
-
-        }
-        catch (FileNotFoundException e)
-        {
-            Debug.LogWarning($"FILE NOT FOUND! " +
-                $"Expected file location: {filePath}" +
-                $"\nERROR: {e}");
-        }
-        catch (IOException e)
-        {
-            Debug.LogException(e);
-        }
-        catch (Exception e)
-        {
-            Debug.LogException(e);
-        }
-        finally
-        {
-            if (gzs != null)
-            {
-                gzs.Close();
-            }
-        }
-    }
-
-    public IEnumerable<string> ReadLines(GZipStream gzs)
-    {
-        using (StreamReader reader = new StreamReader(gzs))
-        {
-            string line;
             int i = 0;
 
-            while((line = reader.ReadLine()) != null && i <= y)
+            foreach (KeyValuePair<string, string[]> entry in dbDict)
             {
-                i++;                
-
-                if (i >= x && i <= y)
+                if (i > 0)
                 {
-                    line = line.Replace("\t", ",");
-                    yield return line;
+                    if (i < 100)
+                    {
+                        if (entry.Value.HasValue(inputField.text))
+                            textBox.text += entry.Value + "\n";
+                    }
+                    else
+                    {
+                        GC.Collect();
+                        break;
+                    }
                 }
-            }         
+
+                i++;
+            }
+        }
+        else
+        {
+            GetAllValues();
         }
     }
 
-    public void DecompressAndFetch(string filePath)
+    private void GetAllValues()
+    {
+        textBox.text = "";
+
+        int i = 0;
+
+        foreach (KeyValuePair<string, string[]> entry in dbDict)
+        {
+            if (i > 0)
+            {
+                if (i < 100)
+                {
+                    foreach (string value in entry.Value)
+                        textBox.text += value;
+
+                    textBox.text += "\n";
+                }
+                else
+                {
+                    GC.Collect();
+                    break;
+                }
+            }
+
+            i++;
+        }
+    }
+
+    private void DecompressAndCopyToDictionary(string filePath)
     {
         GZipStream gzs = null;
+        StreamReader sr = null;
 
         try
         {
@@ -158,15 +122,9 @@ public class DatabaseManager : MonoBehaviour
                 File.OpenRead(filePath),
                 CompressionMode.Decompress);
 
-            textBox.text = "";
+            sr = new StreamReader(gzs);
 
-            lines = FetchSearched(inputField.text.ToLower(), gzs).ToList();            
-            
-            foreach (string line in lines)
-            {
-                textBox.text += line + "\n";
-            }
-
+            dbDict = ReadAndFormatToDictionary(sr, "\t");
         }
         catch (FileNotFoundException e)
         {
@@ -188,32 +146,23 @@ public class DatabaseManager : MonoBehaviour
             {
                 gzs.Close();
             }
+
+            if (sr != null)
+            {
+                sr.Close();
+            }
         }
     }
 
-    public IEnumerable<string> FetchSearched(string search, GZipStream gzs)
+    private Dictionary<string, string[]> ReadAndFormatToDictionary(
+        StreamReader sr, string stringToFormat)
     {
-        using (StreamReader reader = new StreamReader(gzs))
-        {            
-            string line;
-            int k = 0;
-
-            while ((line = reader.ReadLine()) != null && k != 100)
-            {
-                k++;
-                line = line.Replace("\t", ",");
-                string[] words = line.Split(',');
-                for (int i = 0; i < words.Length; i++)
-                {
-                    if (words[i].ToLower().Contains(search))
-                    {
-                        yield return line;
-                    }
-                }
-            }
-            
-            yield break;
-            
-        }
+        return sr.ReadAllLines()
+                .Select(line => line.Replace(stringToFormat, ",")
+                .Split(','))
+                .ToDictionary(
+                    items => items[0],
+                    items => items
+                    );
     }
 }

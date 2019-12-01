@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -27,19 +28,12 @@ public class PerformanceManager : MonoBehaviour
 
         GUI.Label(rect1, text1, style);
 
-        Rect rect2 = new Rect(10, 25, w, h * 2 / 100);
+        Rect rect2 = new Rect(10, 30, w, h * 2 / 100);
         string text2 = $"Managed Heap: " +
             $"{Profiler.GetMonoHeapSizeLong() / 1024 / 1024} " +
             $"MB";
 
         GUI.Label(rect2, text2, style);
-
-        Rect rect3 = new Rect(10, 40, w, h * 2 / 100);
-        string text3 = $"Total Allocated by Unity: " +
-            $"{Profiler.GetTotalReservedMemoryLong() / 1024 / 1024} " +
-            $"MB";
-
-        GUI.Label(rect3, text3, style);
 
     }
 }
