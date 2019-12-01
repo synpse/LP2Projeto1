@@ -19,19 +19,47 @@ public class DatabaseManager : MonoBehaviour
     private const string fileTitleBasics = "title.basics.tsv.gz";
     private const string fileTitleRatings = "title.ratings.tsv.gz";
 
+    private int x = 0;
+    private int y = 100;
+
     private string directoryPath;
 
     private void Start()
     {
+        
         Initialize();
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyUp(KeyCode.Space))
+        {           
+            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+            DecompressAndRead(fileTitleBasicsFull);
+            x += 100;
+            y += 100;
+            
+            Debug.Log(x);
+            Debug.Log(y);
+        }
+        if (Input.GetKeyUp(KeyCode.Backspace))
         {
             string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
             DecompressAndRead(fileTitleBasicsFull);
+            if(x <= 0)
+            {
+                x = 0;
+                y = 100;
+            }
+            else
+            {
+                x -= 100;
+                y -= 100;
+            }
+            
+
+            Debug.Log(x);
+            Debug.Log(y);
         }
     }
 
@@ -48,11 +76,17 @@ public class DatabaseManager : MonoBehaviour
 
         try
         {
+            //List<string> lines;
+
             gzs = new GZipStream(
                 File.OpenRead(filePath),
                 CompressionMode.Decompress);
-
+            
+            textBox.text = "";
+            //gzs.Position = x;
             lines = ReadLines(gzs).ToList();
+
+            
 
             foreach (string line in lines)
             {
@@ -88,23 +122,20 @@ public class DatabaseManager : MonoBehaviour
         using (StreamReader reader = new StreamReader(gzs))
         {
             string line;
+            int i = 0;
 
-            for (int i = 0; i < 100; i++)
+            while((line = reader.ReadLine()) != null && i <= y)
             {
-                line = reader.ReadLine();
-
-                if (i > 5)
+                i++;
+                if (i >= x && i <= y)
                 {
+                    Debug.Log(line);
                     yield return line;
                 }
-            }
 
-            /*
-            while ((line = reader.ReadLine()) != null)
-            {
-                yield return line;
             }
-            */
+            
         }
     }
+
 }
