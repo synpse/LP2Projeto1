@@ -12,6 +12,9 @@ public class DatabaseManager : MonoBehaviour
     private Text textBox;
 
     [SerializeField]
+    private InputField inputField;
+
+    [SerializeField]
     private List<string> lines;
 
     private const string appName = "MyIMDBSearcher";
@@ -63,6 +66,13 @@ public class DatabaseManager : MonoBehaviour
 
             string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
             DecompressAndRead(fileTitleBasicsFull);
+        }
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            Debug.Log(inputField.text);
+
+            string fileTitleBasicsFull = Path.Combine(directoryPath, fileTitleBasics);
+            DecompressAndFetch(fileTitleBasicsFull);
         }
     }
 
@@ -127,16 +137,83 @@ public class DatabaseManager : MonoBehaviour
 
             while((line = reader.ReadLine()) != null && i <= y)
             {
-                i++;
-
-                line = line.Replace("\t", " ").TrimSpaces().FormatString(",");
+                i++;                
 
                 if (i >= x && i <= y)
                 {
-                    Debug.Log(line);
+                    line = line.Replace("\t", ",");
                     yield return line;
                 }
             }         
+        }
+    }
+
+    public void DecompressAndFetch(string filePath)
+    {
+        GZipStream gzs = null;
+
+        try
+        {
+            gzs = new GZipStream(
+                File.OpenRead(filePath),
+                CompressionMode.Decompress);
+
+            textBox.text = "";
+
+            lines = FetchSearched(inputField.text.ToLower(), gzs).ToList();            
+            
+            foreach (string line in lines)
+            {
+                textBox.text += line + "\n";
+            }
+
+        }
+        catch (FileNotFoundException e)
+        {
+            Debug.LogWarning($"FILE NOT FOUND! " +
+                $"Expected file location: {filePath}" +
+                $"\nERROR: {e}");
+        }
+        catch (IOException e)
+        {
+            Debug.LogException(e);
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+        }
+        finally
+        {
+            if (gzs != null)
+            {
+                gzs.Close();
+            }
+        }
+    }
+
+    public IEnumerable<string> FetchSearched(string search, GZipStream gzs)
+    {
+        using (StreamReader reader = new StreamReader(gzs))
+        {            
+            string line;
+            int k = 0;
+
+            while ((line = reader.ReadLine()) != null && k != 100)
+            {
+                k++;
+                line = line.Replace("\t", ",");
+                string[] words = line.Split(',');
+                for (int i = 0; i < words.Length; i++)
+                {
+                    if (words[i].ToLower().Contains(search))
+                    {
+                        yield return line;
+                    }
+                }
+            }
+            
+            yield break;
+            
         }
     }
 }
