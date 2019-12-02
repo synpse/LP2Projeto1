@@ -29,7 +29,7 @@ public class DatabaseManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyUp(KeyCode.Space))
         {
             string fileTitleBasicsFull = 
                 Path.Combine(directoryPath, fileTitleBasics);
@@ -39,11 +39,15 @@ public class DatabaseManager : MonoBehaviour
 
             GetAllValues();
         }
+        if (Input.GetKeyUp(KeyCode.Return))
+        {
+            ValueChangeCheck();
+        }
     }
 
     private void Initialize()
     {
-        inputField.onValueChanged.AddListener(delegate {ValueChangeCheck();});
+        //inputField.onValueChanged.AddListener(delegate {ValueChangeCheck();});
 
         directoryPath = Path.Combine(
             Environment.GetFolderPath(
@@ -52,20 +56,32 @@ public class DatabaseManager : MonoBehaviour
 
     private void ValueChangeCheck()
     {
-        if (inputField.text != null)
+        if (inputField.text == "" || inputField == null)
         {
+            GetAllValues();
+        }
+        else if(inputField.text != null)
+        {            
             textBox.text = "";
 
             int i = 0;
+            int numberOfMatches = 0;
 
             foreach (KeyValuePair<string, string[]> entry in dbDict)
             {
                 if (i > 0)
                 {
-                    if (i < 100)
+                    if (i < dbDict.Count && i != 100)
                     {
-                        if (entry.Value.HasValue(inputField.text))
-                            textBox.text += entry.Value + "\n";
+                        i++;
+                         foreach (string value in entry.Value)
+                         {
+                             if (value.Contains(inputField.text) && numberOfMatches != 100)
+                             {
+                                WriteLines(entry.Value);
+                                numberOfMatches++;
+                             }
+                         }                        
                     }
                     else
                     {
@@ -77,10 +93,16 @@ public class DatabaseManager : MonoBehaviour
                 i++;
             }
         }
-        else
+    }
+
+    private void WriteLines(string[] strings)
+    {
+        foreach(string value in strings)
         {
-            GetAllValues();
+            textBox.text += value + " ";
         }
+
+        textBox.text += "\n";
     }
 
     private void GetAllValues()
@@ -109,6 +131,7 @@ public class DatabaseManager : MonoBehaviour
 
             i++;
         }
+        
     }
 
     private void DecompressAndCopyToDictionary(string filePath)
