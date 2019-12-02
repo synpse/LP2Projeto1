@@ -24,4 +24,24 @@ public static class MyOtherExtensions
 
         return false;
     }
+
+    public static Dictionary<string, string[]> RemoveDuplicates(
+        this Dictionary<string, string[]> dict)
+    {
+        HashSet<string[]> knownValues =
+            new HashSet<string[]>();
+
+        Dictionary<string, string[]> dbDictUniques =
+            new Dictionary<string, string[]>();
+
+        foreach (KeyValuePair<string, string[]> pair in dict)
+        {
+            if (knownValues.Add(pair.Value))
+            {
+                dbDictUniques.Add(pair.Key, pair.Value);
+            }
+        }
+
+        return dbDictUniques;
+    }
 }

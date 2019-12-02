@@ -29,17 +29,7 @@ public class DatabaseManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyUp(KeyCode.Space))
-        {
-            string fileTitleBasicsFull = 
-                Path.Combine(directoryPath, fileTitleBasics);
-
-            if (dbDict == null)
-                DecompressAndCopyToDictionary(fileTitleBasicsFull);
-
-            GetAllValues();
-        }
-        if (Input.GetKeyUp(KeyCode.Return))
+        if (Input.GetKeyDown(KeyCode.Return))
         {
             ValueChangeCheck();
         }
@@ -47,11 +37,23 @@ public class DatabaseManager : MonoBehaviour
 
     private void Initialize()
     {
-        //inputField.onValueChanged.AddListener(delegate {ValueChangeCheck();});
+        //inputField.onValueChanged.AddListener(
+            //delegate {ValueChangeCheck();});
 
         directoryPath = Path.Combine(
             Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData), appName);
+
+        string fileTitleBasicsFull =
+            Path.Combine(directoryPath, fileTitleBasics);
+
+        if (dbDict == null)
+        {
+            DecompressAndCopyToDictionary(fileTitleBasicsFull);
+            dbDict.Remove(dbDict.Keys.First());
+        }
+
+        GetAllValues();
     }
 
     private void ValueChangeCheck()
@@ -60,49 +62,38 @@ public class DatabaseManager : MonoBehaviour
         {
             GetAllValues();
         }
-        else if(inputField.text != null)
+        else if (inputField.text != null)
         {            
             textBox.text = "";
 
-            int i = 0;
             int numberOfMatches = 0;
 
             foreach (KeyValuePair<string, string[]> entry in dbDict)
             {
-                if (i > 0)
+                foreach (string value in entry.Value)
                 {
-                    if (i < dbDict.Count && i != 100)
+                    if (value.Contains(inputField.text)
+                            && numberOfMatches < 100)
                     {
-                        i++;
-                         foreach (string value in entry.Value)
-                         {
-                             if (value.Contains(inputField.text) && numberOfMatches != 100)
-                             {
-                                WriteLines(entry.Value);
-                                numberOfMatches++;
-                             }
-                         }                        
-                    }
-                    else
-                    {
-                        GC.Collect();
+                        numberOfMatches++;
+                        WriteLines(entry.Value);
                         break;
                     }
                 }
-
-                i++;
             }
         }
     }
 
     private void WriteLines(string[] strings)
     {
+        string line = null;
+
         foreach(string value in strings)
         {
-            textBox.text += value + " ";
+            line += value;
         }
 
-        textBox.text += "\n";
+        textBox.text += line + "\n";
     }
 
     private void GetAllValues()
@@ -113,20 +104,17 @@ public class DatabaseManager : MonoBehaviour
 
         foreach (KeyValuePair<string, string[]> entry in dbDict)
         {
-            if (i > 0)
+            if (i < 100)
             {
-                if (i < 100)
-                {
-                    foreach (string value in entry.Value)
-                        textBox.text += value;
+                foreach (string value in entry.Value)
+                    textBox.text += value;
 
-                    textBox.text += "\n";
-                }
-                else
-                {
-                    GC.Collect();
-                    break;
-                }
+                textBox.text += "\n";
+            }
+            else
+            {
+                GC.Collect();
+                break;
             }
 
             i++;
@@ -148,6 +136,7 @@ public class DatabaseManager : MonoBehaviour
             sr = new StreamReader(gzs);
 
             dbDict = ReadAndFormatToDictionary(sr, "\t");
+            //dbDict.RemoveDuplicates();
         }
         catch (FileNotFoundException e)
         {
@@ -181,7 +170,7 @@ public class DatabaseManager : MonoBehaviour
         StreamReader sr, string stringToFormat)
     {
         return sr.ReadAllLines()
-                .Select(line => line.Replace(stringToFormat, ",")
+                .Select(line => line.Replace(stringToFormat, "\t-\t")
                 .Split(','))
                 .ToDictionary(
                     items => items[0],
