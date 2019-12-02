@@ -64,6 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\DatabaseManager.cs" />
+    <Compile Include="Assets\Entry.cs" />
     <Compile Include="Assets\Movie.cs" />
     <Compile Include="Assets\MyOtherExtensions.cs" />
     <Compile Include="Assets\MyStringExtensions.cs" />

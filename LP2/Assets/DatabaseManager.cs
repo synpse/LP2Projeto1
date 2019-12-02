@@ -20,7 +20,7 @@ public class DatabaseManager : MonoBehaviour
 
     private string directoryPath;
 
-    private Dictionary<string, List<string>> dbDict;
+    private Dictionary<string, string[]> dbDict;
 
     private void Start()
     {     
@@ -49,9 +49,8 @@ public class DatabaseManager : MonoBehaviour
 
         if (dbDict == null)
         {
-            dbDict = new Dictionary<string, List<string>>();
             DecompressAndCopyToDictionary(fileTitleBasicsFull);
-            dbDict.Remove(dbDict.Keys.First());
+            //dbDict.Remove(dbDict.Keys.First());
         }
 
         GetAllValues();
@@ -69,7 +68,22 @@ public class DatabaseManager : MonoBehaviour
 
             int numberOfMatches = 0;
 
-            foreach (KeyValuePair<string, List<string>> entry in dbDict)
+            foreach (string key in dbDict.Keys)
+            {
+                if (key.Contains(inputField.text))
+                {
+                    if (numberOfMatches < 100)
+                    {
+                        numberOfMatches++;
+                        WriteLines(dbDict[key]);
+
+                        break;
+                    }
+                }
+            }
+
+            /*
+            foreach (KeyValuePair<string, string[]> entry in dbDict)
             {
                 foreach (string value in entry.Value)
                 {
@@ -79,22 +93,21 @@ public class DatabaseManager : MonoBehaviour
                         numberOfMatches++;
                         WriteLines(entry.Value);
 
-                        Debug.Log(value[1]);
-
                         break;
                     }
                 }
             }
+            */
         }
     }
 
-    private void WriteLines(List<string> strings)
+    private void WriteLines(string[] strings)
     {
         string line = null;
 
         foreach(string value in strings)
         {
-            line += value;
+            line += value + " - ";
         }
 
         textBox.text += line + "\n";
@@ -106,12 +119,12 @@ public class DatabaseManager : MonoBehaviour
 
         int i = 0;
 
-        foreach (KeyValuePair<string, List<string>> entry in dbDict)
+        foreach (KeyValuePair<string, string[]> entry in dbDict)
         {
             if (i < 100)
             {
                 foreach (string value in entry.Value)
-                    textBox.text += value;
+                    textBox.text += value + " - ";
 
                 textBox.text += "\n";
             }
@@ -140,8 +153,8 @@ public class DatabaseManager : MonoBehaviour
             sr = new StreamReader(gzs);
 
             string[] separators = { "\t" };
-            ReadAndSplitToDictionary(sr, separators);
-            //dbDict.RemoveDuplicates();
+            dbDict = ReadAndSplitToDictionary(sr, separators);
+            dbDict.RemoveDuplicates();
         }
         catch (FileNotFoundException e)
         {
@@ -171,21 +184,16 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    private void ReadAndSplitToDictionary(StreamReader sr, string[] separators)
+    private Dictionary<string, string[]> ReadAndSplitToDictionary(
+        StreamReader sr, string[] separators)
     {
-        while (sr != null) 
-        {
-            List<string> stringsList = new List<string>();
-
-            string line = sr.ReadLine();
-            string[] strings = line.Split(separators, StringSplitOptions.None);
-
-            foreach (string s in strings)
-            {
-                stringsList.Add(s);
-            }
-
-            dbDict.Add(stringsList[0], stringsList);
-        }
+        return sr.ReadAllLines()
+                .Skip(1)
+                .Select(line => line
+                .Split(separators, StringSplitOptions.None))
+                .ToDictionary(
+                    items => items[1],
+                    items => items
+                    );
     }
 }
