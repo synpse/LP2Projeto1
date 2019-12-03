@@ -4,12 +4,14 @@ using UnityEngine;
 
 public class Entry
 {
-    public string ID { get; set; }
-    public string[] Title { get; set; }
+    public string Title { get; }
+    public short? Year { get; }
+    public IEnumerable<string> Genres { get; }
 
-    public Entry(string ID, string[] Title)
+    public Entry(string Title, short? Year, IEnumerable<string> Genres)
     {
-        this.ID = ID;
         this.Title = Title;
+        this.Year = Year;
+        this.Genres = Genres;
     }
 }
