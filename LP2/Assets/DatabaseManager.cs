@@ -173,6 +173,49 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    public void OrderByName()
+    {
+        try
+        {
+            Entry[] results;
+
+            results = (
+                from entry in entries
+                select entry)
+                .OrderBy(entry => entry.Title)
+                .ToArray();
+
+            textBox.text = "";
+
+            for (int i = numEntriesOnScreen;
+            i < numEntriesOnScreen + numMaxEntriesOnScreen
+            && i < results.Length;
+            i++)
+            {
+
+                // Obter titulo atual
+                Entry entry = results[i];
+
+                textBox.text +=
+                    "\t\t* " +
+                    $"\"{entry.Title}\" " +
+                    $"({entry.Year?.ToString() ?? "unknown year"}): ";
+
+                foreach (string title in entry.Title.Split(' '))
+                {
+                    textBox.text += "/ ";
+                    textBox.text += $"{title} ";
+                }
+                textBox.text += "\n";
+            }
+            
+        }catch(Exception e)
+        {
+            Debug.Log(e);
+        }
+        
+    }
+
     private void LineToTitle(string line)
     {
         string[] fields = line.Split('\t');
