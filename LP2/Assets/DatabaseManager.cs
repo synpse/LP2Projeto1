@@ -24,8 +24,6 @@ public class DatabaseManager : MonoBehaviour
 
     private ISet<string> genres;
 
-    private Dictionary<string, string[]> dbDict;
-
     private Entry[] results;
 
     private void Start()
@@ -37,24 +35,38 @@ public class DatabaseManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            if(inputField.text != null)
+            if(inputField.text != null &&
+                inputField.text != "")
             {
                 results = SelectEntries(inputField.text);
+                numEntriesOnScreen = 0;
                 PrintResults(results);
+            }
+            else
+            {
+                textBox.text = "";
+
+                textBox.text += $"\n\t\tNo results found.\n\n";
             }
             
         }
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            numEntriesOnScreen += numMaxEntriesOnScreen;
-            PrintResults(results);
+            if (numEntriesOnScreen < results.Length)
+            {
+                numEntriesOnScreen += numMaxEntriesOnScreen;
+                PrintResults(results);
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            numEntriesOnScreen -= numMaxEntriesOnScreen;
-            PrintResults(results);
+            if (numEntriesOnScreen > 0)
+            {
+                numEntriesOnScreen -= numMaxEntriesOnScreen;
+                PrintResults(results);
+            }
         }
     }
 
@@ -80,10 +92,6 @@ public class DatabaseManager : MonoBehaviour
         Reader(fileTitleBasicsFull, LineToTitle);
 
         PrintAllGenres();
-
-        results = SelectEntries(inputField.text);
-
-        PrintResults(results);
 
         //inputField.onValueChanged.AddListener(
         //delegate {ValueChangeCheck();});
@@ -119,11 +127,11 @@ public class DatabaseManager : MonoBehaviour
         }
         catch (IOException e)
         {
-            Debug.LogException(e);
+            Debug.LogError(e);
         }
         catch (Exception e)
         {
-            Debug.LogException(e);
+            Debug.LogError(e);
         }
         finally
         {
@@ -148,7 +156,7 @@ public class DatabaseManager : MonoBehaviour
     {
         textBox.text = "";
 
-        textBox.text += $"\n\t\t{CountResults(results)} results found!\n";
+        textBox.text += $"\n\t\t{CountResults(results)} results found!\n\n";
 
         // Mostrar próximos 10
         for (int i = numEntriesOnScreen;
@@ -165,12 +173,13 @@ public class DatabaseManager : MonoBehaviour
             textBox.text +=
                 "\t\t* " +
                 $"\"{entry.Title}\" " +
-                //$"({entry.Year?.ToString() ?? "unknown year"}): ";
-                $"({entry.Year}): ";
+                $"({entry.Year?.ToString() ?? "Unknown Year"}): ";
 
             foreach (string genre in entry.Genres)
             {
-                if (!firstGenre) textBox.text += "/ ";
+                if (!firstGenre) 
+                    textBox.text += "/ ";
+
                 textBox.text += $"{genre} ";
                 firstGenre = false;
             }
@@ -182,19 +191,19 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            Entry[] results;
+            results = 
+            (from result in results
+             select result)
+            .OrderBy(result => result.Title)
+            .ToArray();
 
-            results = (
-                from entry in entries
-                select entry)
-                .OrderBy(entry => entry.Title)
-                .ToArray();
+            numEntriesOnScreen = 0;
 
-            PrintResults(results);         
-            
-        }catch(Exception e)
+            PrintResults(results);                   
+        }
+        catch(Exception e)
         {
-            Debug.Log("OrderByName ERROR - " + e);
+            Debug.LogError("OrderByName ERROR: " + e);
         }
         
     }
@@ -203,43 +212,42 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            Entry[] results;
-
-            results = (
-                from entry in entries
-                select entry)
-                .OrderBy(entry => entry.Genres)
+            results =
+                (from result in results
+                 select result)
+                .OrderBy(result => String.Join(
+                    String.Empty, result.Genres.ToArray()))
+                .ThenBy(result => result.Title)
                 .ToArray();
 
-            PrintResults(results);
-            
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);           
         }
         catch (Exception e)
         {
-            Debug.Log("OrderByGenre ERROR - " + e);
+            Debug.LogError("OrderByGenre ERROR: " + e);
         }
-
-        Debug.Log("Is Not Working");
     }
 
     public void OrderByYear()
     {
         try
         {
-            Entry[] results;
-
-            results = (
-                from entry in entries
-                select entry)
-                .OrderBy(entry => entry.Year.ToString())
+            results =
+                (from result in results
+                select result)
+                .OrderBy(result => result.Year)
+                .ThenBy(result => result.Title)
                 .ToArray();
 
-            PrintResults(results);
+            numEntriesOnScreen = 0;
 
+            PrintResults(results);
         }
         catch (Exception e)
         {
-            Debug.Log("OrderByYear ERROR - " + e);
+            Debug.LogError("OrderByYear ERROR: " + e);
         }
         
     }
@@ -249,27 +257,27 @@ public class DatabaseManager : MonoBehaviour
         string[] fields = line.Split('\t');
         string[] titleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
-        short? year = TryParse(fields);
+        short? year = TryParse(fields[5]);
 
         CheckInvalidGenres(entryGenres, titleGenres);
         AddGenres(entryGenres);
         AddNewEntry(fields, year, entryGenres);
     }
 
-    public short? TryParse(string[] fields)
+    public short? TryParse(string field)
     {
         try
         {
             short aux;
 
-            return short.TryParse(fields[5], out aux)
+            return short.TryParse(field, out aux)
                 ? (short?)aux
                 : null;
         }
         catch (Exception e)
         {
             throw new InvalidOperationException(
-                $"Tried to parse '{fields[5]}', but got exception '{e.Message}'"
+                $"Tried to parse '{field}', but got exception '{e.Message}'"
                 + $" with this stack trace: {e.StackTrace}");
         }
     }
