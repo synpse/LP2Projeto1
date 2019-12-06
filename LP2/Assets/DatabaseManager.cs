@@ -26,6 +26,10 @@ public class DatabaseManager : MonoBehaviour
 
     private Entry[] results;
 
+    private int page;
+
+    private int pages;
+
     private void Start()
     {     
         Initialize();
@@ -40,6 +44,8 @@ public class DatabaseManager : MonoBehaviour
             {
                 results = SelectEntries(inputField.text);
                 numEntriesOnScreen = 0;
+                page = 0;
+                pages = Mathf.CeilToInt(CountResults(results) / 40);
                 PrintResults(results);
             }
             else
@@ -53,9 +59,10 @@ public class DatabaseManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            if (numEntriesOnScreen < results.Length)
+            if (numEntriesOnScreen < results.Length - numMaxEntriesOnScreen)
             {
                 numEntriesOnScreen += numMaxEntriesOnScreen;
+                page++;
                 PrintResults(results);
             }
         }
@@ -65,6 +72,7 @@ public class DatabaseManager : MonoBehaviour
             if (numEntriesOnScreen > 0)
             {
                 numEntriesOnScreen -= numMaxEntriesOnScreen;
+                page--;
                 PrintResults(results);
             }
         }
@@ -89,7 +97,7 @@ public class DatabaseManager : MonoBehaviour
 
         entries = new List<Entry>(numEntries);
 
-        Reader(fileTitleBasicsFull, LineToTitle);
+        Reader(fileTitleBasicsFull, LineToEntry);
 
         PrintAllGenres();
 
@@ -117,8 +125,6 @@ public class DatabaseManager : MonoBehaviour
             {
                 lineAction.Invoke(line);
             }
-
-            //dbDict.RemoveDuplicates();
         }
         catch (FileNotFoundException e)
         {
@@ -156,7 +162,9 @@ public class DatabaseManager : MonoBehaviour
     {
         textBox.text = "";
 
-        textBox.text += $"\n\t\t{CountResults(results)} results found!\n\n";
+        textBox.text += $"\n\t\t{CountResults(results)} results found!";
+
+        textBox.text += $"\t-\tPage {page} of {pages}\n\n";
 
         // Mostrar próximos 10
         for (int i = numEntriesOnScreen;
@@ -171,20 +179,64 @@ public class DatabaseManager : MonoBehaviour
             Entry entry = results[i];
 
             textBox.text +=
-                "\t\t* " +
-                $"\"{entry.Title}\" " +
-                $"({entry.Year?.ToString() ?? "Unknown Year"}): ";
+                "\t\t* " + $"\"{entry.Type}\t|\t";
+
+            textBox.text +=
+                $"\"{entry.MainTitle}";
+
+            if (entry.SecondaryTitle != entry.MainTitle)
+                textBox.text +=
+                    $": {entry.SecondaryTitle}";
+
+            textBox.text +=
+                $"\"\t|\t";
+
+            textBox.text +=
+                $"Adult Only: {entry.IsAdultOnly.ToString()}\t|\t";
+
+            textBox.text += 
+                $"({entry.StartYear?.ToString() ?? "Unknown Year"})";
+
+            if (entry.EndYear != null)
+                textBox.text +=
+                    $"({entry.EndYear?.ToString() ?? " - Unknown Year"})";
+
+            textBox.text +=
+                    $"\t|\t";
 
             foreach (string genre in entry.Genres)
             {
                 if (!firstGenre) 
-                    textBox.text += "/ ";
+                    textBox.text += " / ";
 
-                textBox.text += $"{genre} ";
+                textBox.text += $"{genre}";
                 firstGenre = false;
             }
+
             textBox.text += "\n";
         }
+    }
+
+    public void OrderByType()
+    {
+        try
+        {
+            results =
+            (from result in results
+             select result)
+            .OrderBy(result => result.Type)
+            .ToArray();
+
+            page = 0;
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("OrderByType ERROR: " + e);
+        }
+
     }
 
     public void OrderByName()
@@ -194,9 +246,10 @@ public class DatabaseManager : MonoBehaviour
             results = 
             (from result in results
              select result)
-            .OrderBy(result => result.Title)
+            .OrderBy(result => result.MainTitle)
             .ToArray();
 
+            page = 0;
             numEntriesOnScreen = 0;
 
             PrintResults(results);                   
@@ -208,6 +261,74 @@ public class DatabaseManager : MonoBehaviour
         
     }
 
+    public void OrderByAdultOnly()
+    {
+        try
+        {
+            results =
+            (from result in results
+             select result)
+            .OrderBy(result => result.IsAdultOnly)
+            .ToArray();
+
+            page = 0;
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("OrderByAdultOnly ERROR: " + e);
+        }
+
+    }
+
+    public void OrderByStartYear()
+    {
+        try
+        {
+            results =
+                (from result in results
+                 select result)
+                .OrderBy(result => result.StartYear)
+                .ThenBy(result => result.MainTitle)
+                .ToArray();
+
+            page = 0;
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("OrderByStartYear ERROR: " + e);
+        }
+
+    }
+
+    public void OrderByEndYear()
+    {
+        try
+        {
+            results =
+                (from result in results
+                 select result)
+                .OrderBy(result => result.EndYear)
+                .ThenBy(result => result.MainTitle)
+                .ToArray();
+
+            page = 0;
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("OrderByEndYear ERROR: " + e);
+        }
+
+    }
+
     public void OrderByGenre()
     {
         try
@@ -217,9 +338,10 @@ public class DatabaseManager : MonoBehaviour
                  select result)
                 .OrderBy(result => String.Join(
                     String.Empty, result.Genres.ToArray()))
-                .ThenBy(result => result.Title)
+                .ThenBy(result => result.MainTitle)
                 .ToArray();
 
+            page = 0;
             numEntriesOnScreen = 0;
 
             PrintResults(results);           
@@ -230,41 +352,58 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    public void OrderByYear()
-    {
-        try
-        {
-            results =
-                (from result in results
-                select result)
-                .OrderBy(result => result.Year)
-                .ThenBy(result => result.Title)
-                .ToArray();
-
-            numEntriesOnScreen = 0;
-
-            PrintResults(results);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("OrderByYear ERROR: " + e);
-        }
-        
-    }
-
-    private void LineToTitle(string line)
+    private void LineToEntry(string line)
     {
         string[] fields = line.Split('\t');
-        string[] titleGenres = fields[8].Split(',');
-        ICollection<string> entryGenres = new List<string>();
-        short? year = TryParse(fields[5]);
 
-        CheckInvalidGenres(entryGenres, titleGenres);
+        // ID
+        string entryID = fields[0];
+
+        // Type
+        string entryType = fields[1];
+
+        // Main Title
+        string entryMainTitle = fields[2];
+
+        // Secondary Title
+        string entrySecondaryTitle = fields[3];
+
+        // Is Adult
+        bool entryIsAdult = TryParseBool(fields[4]);
+
+        // Start Year
+        short? entryStartYear = TryParseShort(fields[5]);
+
+        // End Year
+        short? entryEndYear = TryParseShort(fields[6]);
+
+        // Runtime Minutes
+        short? entryRuntimeMinutes = TryParseShort(fields[7]);
+
+        // Genres
+        string[] entryTitleGenres = fields[8].Split(',');
+        ICollection<string> entryGenres = new List<string>();
+
+        // Check for invalid genres
+        CheckInvalidGenres(entryGenres, entryTitleGenres);
+
+        // Add valid genres to our genres list
         AddGenres(entryGenres);
-        AddNewEntry(fields, year, entryGenres);
+
+        // Add Entry
+        AddNewEntry(
+            entryID, 
+            entryType, 
+            entryMainTitle, 
+            entrySecondaryTitle, 
+            entryIsAdult, 
+            entryStartYear, 
+            entryEndYear, 
+            entryRuntimeMinutes, 
+            entryGenres);
     }
 
-    public short? TryParse(string field)
+    public short? TryParseShort(string field)
     {
         try
         {
@@ -273,6 +412,23 @@ public class DatabaseManager : MonoBehaviour
             return short.TryParse(field, out aux)
                 ? (short?)aux
                 : null;
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
+        }
+    }
+
+    public bool TryParseBool(string field)
+    {
+        try
+        {
+            if (field == "0")
+                return false;
+            else
+                return true;
         }
         catch (Exception e)
         {
@@ -298,27 +454,33 @@ public class DatabaseManager : MonoBehaviour
     }
 
     private void AddNewEntry(
-        string[] fields, 
-        short? year, 
-        ICollection<string> entryGenres)
+        string entryID,
+        string entryType,
+        string entryMainTitle,
+        string entrySecondaryTitle,
+        bool entryIsAdult,
+        short? entryStartYear,
+        short? entryEndYear,
+        short? entryRuntimeMinutes,
+        IEnumerable<string> entryGenres)
     {
-        Entry entry = new Entry(fields[2], year, entryGenres.ToArray());
-
-        /*if (entry.Title.StartsWith("-"))
-        {
-            Debug.Log(entry.Title);
-            //Does Nothing
-        }
-        else
-        {
-            entries.Add(entry);
-        }*/
+        Entry entry = new Entry(
+            entryID, 
+            entryType, 
+            entryMainTitle, 
+            entrySecondaryTitle, 
+            entryIsAdult, 
+            entryStartYear, 
+            entryEndYear, 
+            entryRuntimeMinutes, 
+            entryGenres.ToArray());
 
         entries.Add(entry);
     }
 
     private void PrintAllGenres()
     {
+        Debug.Log($"ALL GENRES");
         foreach (string genre in genres.OrderBy(g => g))
             Debug.Log($"{genre}");
     }    
@@ -326,7 +488,12 @@ public class DatabaseManager : MonoBehaviour
     private Entry[] SelectEntries(string input)
     {
         return (from entry in entries
-                where entry.Title.ToLower().Contains(input.ToLower())
+
+                where entry
+                .MainTitle
+                .ToLower()
+                .Contains(input.ToLower())
+
                 select entry)
                 .ToArray();
     }
