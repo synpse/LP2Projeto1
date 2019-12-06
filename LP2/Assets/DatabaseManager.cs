@@ -165,7 +165,8 @@ public class DatabaseManager : MonoBehaviour
             textBox.text +=
                 "\t\t* " +
                 $"\"{entry.Title}\" " +
-                $"({entry.Year?.ToString() ?? "unknown year"}): ";
+                //$"({entry.Year?.ToString() ?? "unknown year"}): ";
+                $"({entry.Year}): ";
 
             foreach (string genre in entry.Genres)
             {
@@ -193,14 +194,14 @@ public class DatabaseManager : MonoBehaviour
             
         }catch(Exception e)
         {
-            Debug.Log(e);
+            Debug.Log("OrderByName ERROR - " + e);
         }
         
     }
 
     public void OrderByGenre()
     {
-        /*try
+        try
         {
             Entry[] results;
 
@@ -211,26 +212,26 @@ public class DatabaseManager : MonoBehaviour
                 .ToArray();
 
             PrintResults(results);
-
+            
         }
         catch (Exception e)
         {
-            Debug.Log(e);
-        }*/
+            Debug.Log("OrderByGenre ERROR - " + e);
+        }
 
         Debug.Log("Is Not Working");
     }
 
     public void OrderByYear()
     {
-        /*try
+        try
         {
             Entry[] results;
 
             results = (
                 from entry in entries
                 select entry)
-                .OrderBy(entry => entry.Year)
+                .OrderBy(entry => entry.Year.ToString())
                 .ToArray();
 
             PrintResults(results);
@@ -238,11 +239,9 @@ public class DatabaseManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.Log(e);
-        }*/
-
-
-        Debug.Log("Is not working aswell");
+            Debug.Log("OrderByYear ERROR - " + e);
+        }
+        
     }
 
     private void LineToTitle(string line)
@@ -250,27 +249,28 @@ public class DatabaseManager : MonoBehaviour
         string[] fields = line.Split('\t');
         string[] titleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
-        short? year = null;
+        short? year = TryParse(fields);
 
-        TryParseYear(fields, year);
         CheckInvalidGenres(entryGenres, titleGenres);
         AddGenres(entryGenres);
         AddNewEntry(fields, year, entryGenres);
     }
 
-    private void TryParseYear(string[] input, short? year)
+    public short? TryParse(string[] fields)
     {
         try
         {
-            short tmpYear;
+            short aux;
 
-            year = short.TryParse(input[5], out tmpYear)
-                ? (short?)tmpYear
+            return short.TryParse(fields[5], out aux)
+                ? (short?)aux
                 : null;
         }
         catch (Exception e)
         {
-            Debug.LogException(e);
+            throw new InvalidOperationException(
+                $"Tried to parse '{fields[5]}', but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
         }
     }
 
