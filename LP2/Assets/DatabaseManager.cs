@@ -37,20 +37,24 @@ public class DatabaseManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            results = SelectEntries(inputField.text);
-            PrintResults();
+            if(inputField.text != null)
+            {
+                results = SelectEntries(inputField.text);
+                PrintResults(results);
+            }
+            
         }
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             numEntriesOnScreen += numMaxEntriesOnScreen;
-            PrintResults();
+            PrintResults(results);
         }
 
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             numEntriesOnScreen -= numMaxEntriesOnScreen;
-            PrintResults();
+            PrintResults(results);
         }
     }
 
@@ -79,7 +83,7 @@ public class DatabaseManager : MonoBehaviour
 
         results = SelectEntries(inputField.text);
 
-        PrintResults();
+        PrintResults(results);
 
         //inputField.onValueChanged.AddListener(
         //delegate {ValueChangeCheck();});
@@ -140,7 +144,7 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    private void PrintResults()
+    private void PrintResults(Entry[] results)
     {
         textBox.text = "";
 
@@ -161,7 +165,8 @@ public class DatabaseManager : MonoBehaviour
             textBox.text +=
                 "\t\t* " +
                 $"\"{entry.Title}\" " +
-                $"({entry.Year?.ToString() ?? "unknown year"}): ";
+                //$"({entry.Year?.ToString() ?? "unknown year"}): ";
+                $"({entry.Year}): ";
 
             foreach (string genre in entry.Genres)
             {
@@ -185,33 +190,56 @@ public class DatabaseManager : MonoBehaviour
                 .OrderBy(entry => entry.Title)
                 .ToArray();
 
-            textBox.text = "";
-
-            for (int i = numEntriesOnScreen;
-            i < numEntriesOnScreen + numMaxEntriesOnScreen
-            && i < results.Length;
-            i++)
-            {
-
-                // Obter titulo atual
-                Entry entry = results[i];
-
-                textBox.text +=
-                    "\t\t* " +
-                    $"\"{entry.Title}\" " +
-                    $"({entry.Year?.ToString() ?? "unknown year"}): ";
-
-                foreach (string title in entry.Title.Split(' '))
-                {
-                    textBox.text += "/ ";
-                    textBox.text += $"{title} ";
-                }
-                textBox.text += "\n";
-            }
+            PrintResults(results);         
             
         }catch(Exception e)
         {
-            Debug.Log(e);
+            Debug.Log("OrderByName ERROR - " + e);
+        }
+        
+    }
+
+    public void OrderByGenre()
+    {
+        try
+        {
+            Entry[] results;
+
+            results = (
+                from entry in entries
+                select entry)
+                .OrderBy(entry => entry.Genres)
+                .ToArray();
+
+            PrintResults(results);
+            
+        }
+        catch (Exception e)
+        {
+            Debug.Log("OrderByGenre ERROR - " + e);
+        }
+
+        Debug.Log("Is Not Working");
+    }
+
+    public void OrderByYear()
+    {
+        try
+        {
+            Entry[] results;
+
+            results = (
+                from entry in entries
+                select entry)
+                .OrderBy(entry => entry.Year.ToString())
+                .ToArray();
+
+            PrintResults(results);
+
+        }
+        catch (Exception e)
+        {
+            Debug.Log("OrderByYear ERROR - " + e);
         }
         
     }
@@ -221,27 +249,28 @@ public class DatabaseManager : MonoBehaviour
         string[] fields = line.Split('\t');
         string[] titleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
-        short? year = null;
+        short? year = TryParse(fields);
 
-        TryParseYear(fields, year);
         CheckInvalidGenres(entryGenres, titleGenres);
         AddGenres(entryGenres);
         AddNewEntry(fields, year, entryGenres);
     }
 
-    private void TryParseYear(string[] input, short? year)
+    public short? TryParse(string[] fields)
     {
         try
         {
-            short tmpYear;
+            short aux;
 
-            year = short.TryParse(input[5], out tmpYear)
-                ? (short?)tmpYear
+            return short.TryParse(fields[5], out aux)
+                ? (short?)aux
                 : null;
         }
         catch (Exception e)
         {
-            Debug.LogException(e);
+            throw new InvalidOperationException(
+                $"Tried to parse '{fields[5]}', but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
         }
     }
 
@@ -267,6 +296,16 @@ public class DatabaseManager : MonoBehaviour
     {
         Entry entry = new Entry(fields[2], year, entryGenres.ToArray());
 
+        /*if (entry.Title.StartsWith("-"))
+        {
+            Debug.Log(entry.Title);
+            //Does Nothing
+        }
+        else
+        {
+            entries.Add(entry);
+        }*/
+
         entries.Add(entry);
     }
 
@@ -274,7 +313,7 @@ public class DatabaseManager : MonoBehaviour
     {
         foreach (string genre in genres.OrderBy(g => g))
             Debug.Log($"{genre}");
-    }
+    }    
 
     private Entry[] SelectEntries(string input)
     {
