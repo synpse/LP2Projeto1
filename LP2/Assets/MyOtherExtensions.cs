@@ -1,17 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 public static class MyOtherExtensions
 {
-    public static IEnumerable<string> ReadAllLines(this StreamReader reader)
-    {
-        string line;
-        while ((line = reader.ReadLine()) != null)
-        {
-            yield return line;
-        }
-    }
-
     public static bool HasValue(this string[] values, string searchedValue)
     {
         foreach (string value in values)
@@ -43,5 +35,10 @@ public static class MyOtherExtensions
         }
 
         return dbDictUniques;
+    }
+
+    public static string JoinToString(this IEnumerable<string> collection)
+    {
+        return string.Join(String.Empty, collection);
     }
 }

@@ -14,21 +14,25 @@ public class DatabaseManager : MonoBehaviour
     [SerializeField]
     private InputField inputField;
 
+    [SerializeField]
+    private Dropdown typesDropDown;
+
+    [SerializeField]
+    private Dropdown genresDropDown;
+
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
     private const int numMaxEntriesOnScreen = 40;
 
     private int numEntriesOnScreen;
+    private int page;
+    private int pages;
 
     private ICollection<Entry> entries;
-
+    private ISet<string> types;
     private ISet<string> genres;
 
     private Entry[] results;
-
-    private int page;
-
-    private int pages;
 
     private void Start()
     {     
@@ -39,22 +43,26 @@ public class DatabaseManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            if(inputField.text != null &&
-                inputField.text != "")
+            if (inputField.IsActive())
             {
-                results = SelectEntries(inputField.text);
-                numEntriesOnScreen = 0;
-                page = 0;
-                pages = Mathf.CeilToInt(CountResults(results) / 40);
-                PrintResults(results);
-            }
-            else
-            {
-                textBox.text = "";
+                if (inputField.text != null &&
+                    inputField.text != "")
+                {
+                    results = SelectEntries(inputField.text);
+                    FilterByType();
+                    FilterByGenre();
+                    numEntriesOnScreen = 0;
+                    page = 0;
+                    pages = Mathf.CeilToInt(CountResults(results) / 40);
+                    PrintResults(results);
+                }
+                else
+                {
+                    textBox.text = "";
 
-                textBox.text += $"\n\t\tNo results found.\n\n";
-            }
-            
+                    textBox.text += $"\n\t\tNo results found.\n\n";
+                }
+            }          
         }
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
@@ -82,6 +90,7 @@ public class DatabaseManager : MonoBehaviour
     {
         int numEntries = 0;
 
+        types = new HashSet<string>();
         genres = new HashSet<string>();
 
         string directoryPath = Path.Combine(
@@ -99,10 +108,31 @@ public class DatabaseManager : MonoBehaviour
 
         Reader(fileTitleBasicsFull, LineToEntry);
 
-        PrintAllGenres();
+        AssignDropdownValues();
 
         //inputField.onValueChanged.AddListener(
         //delegate {ValueChangeCheck();});
+    }
+
+    private void AssignDropdownValues()
+    {
+        typesDropDown.options.Clear();
+
+        typesDropDown.options.Add(new Dropdown.OptionData("All"));
+
+        foreach (string type in types)
+        {
+            typesDropDown.options.Add(new Dropdown.OptionData(type));
+        }
+
+        genresDropDown.options.Clear();
+
+        genresDropDown.options.Add(new Dropdown.OptionData("All"));
+
+        foreach (string genre in genres)
+        {
+            genresDropDown.options.Add(new Dropdown.OptionData(genre));
+        }
     }
 
     private void Reader(string file, Action<string> lineAction)
@@ -217,6 +247,59 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    public void FilterByType()
+    {
+        try
+        {
+            if (typesDropDown.options[typesDropDown.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                     where result
+                     .Type
+                     .Contains(
+                         typesDropDown
+                         .options[typesDropDown.value]
+                         .text)
+
+                     select result)
+                    .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByGenre ERROR: " + e);
+        }
+    }
+
+    public void FilterByGenre()
+    {
+        try
+        {
+            if (genresDropDown.options[genresDropDown.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                    where result
+                    .Genres
+                    .JoinToString()
+                    .Contains(
+                        genresDropDown
+                        .options[genresDropDown.value]
+                        .text)
+
+                    select result)
+                    .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByGenre ERROR: " + e);
+        }
+    }
+
     public void OrderByType()
     {
         try
@@ -236,7 +319,6 @@ public class DatabaseManager : MonoBehaviour
         {
             Debug.LogError("OrderByType ERROR: " + e);
         }
-
     }
 
     public void OrderByName()
@@ -257,8 +339,7 @@ public class DatabaseManager : MonoBehaviour
         catch(Exception e)
         {
             Debug.LogError("OrderByName ERROR: " + e);
-        }
-        
+        }      
     }
 
     public void OrderByAdultOnly()
@@ -280,7 +361,6 @@ public class DatabaseManager : MonoBehaviour
         {
             Debug.LogError("OrderByAdultOnly ERROR: " + e);
         }
-
     }
 
     public void OrderByStartYear()
@@ -303,7 +383,6 @@ public class DatabaseManager : MonoBehaviour
         {
             Debug.LogError("OrderByStartYear ERROR: " + e);
         }
-
     }
 
     public void OrderByEndYear()
@@ -326,7 +405,6 @@ public class DatabaseManager : MonoBehaviour
         {
             Debug.LogError("OrderByEndYear ERROR: " + e);
         }
-
     }
 
     public void OrderByGenre()
@@ -383,6 +461,9 @@ public class DatabaseManager : MonoBehaviour
         // Genres
         string[] entryTitleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
+
+        // Add valid genres to our genres list
+        AddType(entryType);
 
         // Check for invalid genres
         CheckInvalidGenres(entryGenres, entryTitleGenres);
@@ -453,6 +534,11 @@ public class DatabaseManager : MonoBehaviour
             genres.Add(genre);
     }
 
+    private void AddType(string type)
+    {
+        types.Add(type);
+    }
+
     private void AddNewEntry(
         string entryID,
         string entryType,
@@ -477,13 +563,6 @@ public class DatabaseManager : MonoBehaviour
 
         entries.Add(entry);
     }
-
-    private void PrintAllGenres()
-    {
-        Debug.Log($"ALL GENRES");
-        foreach (string genre in genres.OrderBy(g => g))
-            Debug.Log($"{genre}");
-    }    
 
     private Entry[] SelectEntries(string input)
     {
