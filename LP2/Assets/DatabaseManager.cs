@@ -9,10 +9,28 @@ using UnityEngine.UI;
 public class DatabaseManager : MonoBehaviour
 {
     [SerializeField]
-    private Text textBox;
+    private InputField inputField;
 
     [SerializeField]
-    private InputField inputField;
+    private Text infoTextBox;
+
+    [SerializeField]
+    private Text idTextBox;
+
+    [SerializeField]
+    private Text typeTextBox;
+
+    [SerializeField]
+    private Text titleTextBox;
+
+    [SerializeField]
+    private Text yearsTextBox;
+
+    [SerializeField]
+    private Text adultTextBox;
+
+    [SerializeField]
+    private Text genreTextBox;
 
     [SerializeField]
     private Dropdown typesDropDown;
@@ -58,9 +76,9 @@ public class DatabaseManager : MonoBehaviour
                 }
                 else
                 {
-                    textBox.text = "";
+                    infoTextBox.text = "";
 
-                    textBox.text += $"\n\t\tNo results found.\n\n";
+                    infoTextBox.text += $"\n\t\tNo results found.\n\n";
                 }
             }          
         }
@@ -190,11 +208,17 @@ public class DatabaseManager : MonoBehaviour
 
     private void PrintResults(Entry[] results)
     {
-        textBox.text = "";
+        infoTextBox.text = "";
+        idTextBox.text = "\n\n";
+        typeTextBox.text = "\n\n";
+        titleTextBox.text = "\n\n";
+        yearsTextBox.text = "\n\n";
+        adultTextBox.text = "\n\n";
+        genreTextBox.text = "\n\n";
 
-        textBox.text += $"\n\t\t{CountResults(results)} results found!";
+        infoTextBox.text += $"\t{CountResults(results)} results found!";
 
-        textBox.text += $"\t-\tPage {page} of {pages}\n\n";
+        infoTextBox.text += $"\t-\tPage {page} of {pages}\n\n";
 
         // Mostrar próximos 10
         for (int i = numEntriesOnScreen;
@@ -208,42 +232,53 @@ public class DatabaseManager : MonoBehaviour
             // Obter titulo atual
             Entry entry = results[i];
 
-            textBox.text +=
-                "\t\t* " + $"\"{entry.Type}\t|\t";
+            idTextBox.text +=
+                $"{entry.ID}\n";
 
-            textBox.text +=
-                $"\"{entry.MainTitle}";
+            typeTextBox.text +=
+                $"{entry.Type}\n";
+
+            titleTextBox.text +=
+                $"\t{entry.MainTitle}";
 
             if (entry.SecondaryTitle != entry.MainTitle)
-                textBox.text +=
-                    $": {entry.SecondaryTitle}";
+                titleTextBox.text +=
+                    $":\t{entry.SecondaryTitle}";
 
-            textBox.text +=
-                $"\"\t|\t";
+            titleTextBox.text += "\n";
 
-            textBox.text +=
-                $"Adult Only: {entry.IsAdultOnly.ToString()}\t|\t";
-
-            textBox.text += 
-                $"({entry.StartYear?.ToString() ?? "Unknown Year"})";
+            yearsTextBox.text += 
+                $"{entry.StartYear?.ToString() ?? "Unknown Year"}";
 
             if (entry.EndYear != null)
-                textBox.text +=
-                    $"({entry.EndYear?.ToString() ?? " - Unknown Year"})";
+                yearsTextBox.text +=
+                    $" - {entry.EndYear?.ToString()}";
 
-            textBox.text +=
-                    $"\t|\t";
+            yearsTextBox.text += "\n";
+
+            if (entry.IsAdultOnly)
+                adultTextBox.text +=
+                    $"Adult Only";
+            else
+                adultTextBox.text +=
+                    $"Everyone";
+
+            adultTextBox.text += "\n";
 
             foreach (string genre in entry.Genres)
             {
                 if (!firstGenre) 
-                    textBox.text += " / ";
+                    genreTextBox.text += " / ";
 
-                textBox.text += $"{genre}";
+                genreTextBox.text += $"{genre}";
+
                 firstGenre = false;
             }
 
-            textBox.text += "\n";
+            if (entry.Genres.JoinToString() == "")
+                genreTextBox.text += $"None";
+
+            genreTextBox.text += "\n";
         }
     }
 
@@ -350,6 +385,7 @@ public class DatabaseManager : MonoBehaviour
             (from result in results
              select result)
             .OrderBy(result => result.IsAdultOnly)
+            .Reverse()
             .ToArray();
 
             page = 0;

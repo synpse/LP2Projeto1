@@ -65,7 +65,6 @@
   <ItemGroup>
     <Compile Include="Assets\DatabaseManager.cs" />
     <Compile Include="Assets\Entry.cs" />
-    <Compile Include="Assets\Movie.cs" />
     <Compile Include="Assets\MyOtherExtensions.cs" />
     <Compile Include="Assets\PerformanceManager.cs" />
     <None Include="Assets\TextMesh Pro\Resources\Shaders\TMP_SDF-Surface-Mobile.shader" />
