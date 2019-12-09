@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class DatabaseManager : MonoBehaviour
 {
@@ -15,32 +16,37 @@ public class DatabaseManager : MonoBehaviour
     private Text infoTextBox;
 
     [SerializeField]
-    private Text idTextBox;
-
-    [SerializeField]
-    private Text typeTextBox;
-
-    [SerializeField]
-    private Text titleTextBox;
-
-    [SerializeField]
-    private Text yearsTextBox;
-
-    [SerializeField]
-    private Text adultTextBox;
-
-    [SerializeField]
-    private Text genreTextBox;
+    private Text[] buttonsText;
 
     [SerializeField]
     private Dropdown typesDropDown;
 
     [SerializeField]
+    private Text minStartYears;
+
+    [SerializeField]
+    private Text maxStartYears;
+
+    [SerializeField]
+    private Text minEndYears;
+
+    [SerializeField]
+    private Text maxEndYears;
+
+    [SerializeField]
+    private Dropdown adultsOnlyDropDown;
+
+    [SerializeField]
     private Dropdown genresDropDown;
+
+    [SerializeField]
+    private GameObject entryPanel;
+
+    private Text entryPanelText;
 
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
-    private const int numMaxEntriesOnScreen = 40;
+    private const int numMaxEntriesOnScreen = 11;
 
     private int numEntriesOnScreen;
     private int page;
@@ -48,12 +54,18 @@ public class DatabaseManager : MonoBehaviour
 
     private ICollection<Entry> entries;
     private ISet<string> types;
+    private ISet<short?> startYears;
+    private ISet<short?> endYears;
+    private ISet<bool> adultsOnly;
     private ISet<string> genres;
 
     private Entry[] results;
 
+    private Entry currentSelected;
+
     private void Start()
-    {     
+    {
+        GetComponents();
         Initialize();
     }
 
@@ -61,26 +73,21 @@ public class DatabaseManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            if (inputField.IsActive())
+            if (inputField.text != null &&
+                inputField.text != "")
             {
-                if (inputField.text != null &&
-                    inputField.text != "")
-                {
-                    results = SelectEntries(inputField.text);
-                    FilterByType();
-                    FilterByGenre();
-                    numEntriesOnScreen = 0;
-                    page = 0;
-                    pages = Mathf.CeilToInt(CountResults(results) / 40);
-                    PrintResults(results);
-                }
-                else
-                {
-                    infoTextBox.text = "";
-
-                    infoTextBox.text += $"\n\t\tNo results found.\n\n";
-                }
-            }          
+                results = SelectEntries(inputField.text);
+                FilterByType();
+                FilterByStartYear();
+                FilterByEndYear();
+                FilterByAdultOnly();
+                FilterByGenre();
+                numEntriesOnScreen = 0;
+                page = 0;
+                pages = Mathf.CeilToInt(CountResults(results) / 
+                    numMaxEntriesOnScreen);
+                PrintResults(results);
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
@@ -104,11 +111,26 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    private void GetComponents()
+    {
+        GameObject[] tempObj = 
+            GameObject.FindGameObjectsWithTag("ResultButton");
+
+        buttonsText = new Text[tempObj.Length];
+        for (int i = 0; i < tempObj.Length; i++)
+            buttonsText[i] = tempObj[i].GetComponent<Text>();
+
+        entryPanelText = entryPanel.GetComponentInChildren<Text>();
+    }
+
     private void Initialize()
     {
         int numEntries = 0;
 
         types = new HashSet<string>();
+        startYears = new HashSet<short?>();
+        endYears = new HashSet<short?>();
+        adultsOnly = new HashSet<bool>();
         genres = new HashSet<string>();
 
         string directoryPath = Path.Combine(
@@ -134,15 +156,33 @@ public class DatabaseManager : MonoBehaviour
 
     private void AssignDropdownValues()
     {
+        // types
         typesDropDown.options.Clear();
 
-        typesDropDown.options.Add(new Dropdown.OptionData("All"));
+        typesDropDown.options.Add(
+            new Dropdown.OptionData("All"));
 
         foreach (string type in types)
         {
-            typesDropDown.options.Add(new Dropdown.OptionData(type));
+            typesDropDown.options.Add(
+                new Dropdown.OptionData(type));
         }
 
+        typesDropDown.value = 0;
+
+        // adults only
+        adultsOnlyDropDown.options.Clear();
+
+        adultsOnlyDropDown.options.Add(
+            new Dropdown.OptionData("All"));
+
+        foreach (bool adultOnly in adultsOnly)
+        {
+            adultsOnlyDropDown.options.Add(
+                new Dropdown.OptionData(adultOnly.ToString()));
+        }
+
+        // genres
         genresDropDown.options.Clear();
 
         genresDropDown.options.Add(new Dropdown.OptionData("All"));
@@ -206,19 +246,125 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    public void GetEntryInfo(Button button)
+    {
+        // Open entry info panel
+        OpenPanel();
+
+        // Get text from button child
+        Text tempButtonText = button.GetComponentInChildren<Text>();
+
+        // An index for our iterator
+        int i = 0;
+
+        // Iterator that finds entry corresponding to our button
+        foreach (Text buttonText in buttonsText)
+        {
+            // If our iterated object text is the same as our button text
+            if (buttonText.text == tempButtonText.text)
+            {
+                // Set our current selected entry to numMaxEntriesOnScreen
+                // times the page we're currently at, plus the index
+                currentSelected = results[numMaxEntriesOnScreen * page + i];
+                // Break or iteration as we don't need continue
+                break;
+            }
+
+            // Add one int to our index
+            i++;
+        }
+
+        bool firstGenre = true;
+
+        entryPanelText.text = "";
+
+        entryPanelText.text += 
+            $"\t\t{currentSelected.MainTitle}";
+
+        if (currentSelected.SecondaryTitle != currentSelected.MainTitle)
+            entryPanelText.text +=
+                $":\t{currentSelected.SecondaryTitle}";
+
+        entryPanelText.text += "\n\n";
+
+        entryPanelText.text +=
+            $"\t\tID: {currentSelected.ID}";
+
+        entryPanelText.text += "\n\n";
+
+        entryPanelText.text +=
+            $"\t\tEntry Type: {currentSelected.Type}";
+
+        entryPanelText.text += "\n\n";
+
+        entryPanelText.text +=
+            $"\t\tYear: " +
+            $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
+
+        if (currentSelected.EndYear != null)
+            entryPanelText.text +=
+                $" - {currentSelected.EndYear?.ToString()}";
+
+        entryPanelText.text += "\n\n";
+
+        if (currentSelected.IsAdultOnly)
+            entryPanelText.text +=
+                $"\t\tAudience: Adult Only";
+        else
+            entryPanelText.text +=
+                $"\t\tAudience: Everyone";
+
+        entryPanelText.text += "\n\n";
+
+        foreach (string genre in currentSelected.Genres)
+        {
+            if (!firstGenre)
+                entryPanelText.text += " / ";
+            else
+                entryPanelText.text += "\t\tGenres: ";
+
+            entryPanelText.text += $"{genre}";
+
+            firstGenre = false;
+        }
+
+        if (currentSelected.Genres.JoinToString() == "")
+            entryPanelText.text += $"None";
+
+        entryPanelText.text += "\n\n";
+
+        if (currentSelected.RuntimeMinutes != null)
+            entryPanelText.text +=
+                $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
+        else
+            entryPanelText.text +=
+                $"\t\tRuntime: Unknown";
+    }
+
+    public void OpenPanel()
+    {
+        entryPanel.SetActive(true);
+    }
+
+    public void ClosePanel()
+    {
+        entryPanel.SetActive(false);
+    }
+
     private void PrintResults(Entry[] results)
     {
         infoTextBox.text = "";
-        idTextBox.text = "\n\n";
-        typeTextBox.text = "\n\n";
-        titleTextBox.text = "\n\n";
-        yearsTextBox.text = "\n\n";
-        adultTextBox.text = "\n\n";
-        genreTextBox.text = "\n\n";
+
+        foreach (Text buttonText in buttonsText)
+        {
+            buttonText.text = "";
+        }
 
         infoTextBox.text += $"\t{CountResults(results)} results found!";
 
-        infoTextBox.text += $"\t-\tPage {page} of {pages}\n\n";
+        infoTextBox.text += $"\t-\tPage {page + 1} of {pages + 1}";
+
+        int r = 0;
 
         // Mostrar próximos 10
         for (int i = numEntriesOnScreen;
@@ -232,6 +378,40 @@ public class DatabaseManager : MonoBehaviour
             // Obter titulo atual
             Entry entry = results[i];
 
+            buttonsText[r].text +=
+                $"{entry.MainTitle}";
+
+            if (entry.SecondaryTitle != entry.MainTitle)
+                buttonsText[r].text +=
+                    $":\t{entry.SecondaryTitle}";
+
+            buttonsText[r].text += "\t\t|\t\t";
+
+            buttonsText[r].text +=
+                    $"{entry.StartYear?.ToString() ?? "Unknown Year"}";
+
+            if (entry.EndYear != null)
+                buttonsText[r].text +=
+                    $" - {entry.EndYear?.ToString()}";
+
+            buttonsText[r].text += "\t\t|\t\t";
+
+            foreach (string genre in entry.Genres)
+            {
+                if (!firstGenre)
+                    buttonsText[r].text += " / ";
+
+                buttonsText[r].text += $"{genre}";
+
+                firstGenre = false;
+            }
+
+            if (entry.Genres.JoinToString() == "")
+                buttonsText[r].text += $"None";
+
+            r++;
+
+            /*
             idTextBox.text +=
                 $"{entry.ID}\n";
 
@@ -256,29 +436,11 @@ public class DatabaseManager : MonoBehaviour
 
             yearsTextBox.text += "\n";
 
-            if (entry.IsAdultOnly)
-                adultTextBox.text +=
-                    $"Adult Only";
-            else
-                adultTextBox.text +=
-                    $"Everyone";
-
             adultTextBox.text += "\n";
 
-            foreach (string genre in entry.Genres)
-            {
-                if (!firstGenre) 
-                    genreTextBox.text += " / ";
 
-                genreTextBox.text += $"{genre}";
-
-                firstGenre = false;
-            }
-
-            if (entry.Genres.JoinToString() == "")
-                genreTextBox.text += $"None";
-
-            genreTextBox.text += "\n";
+            runtimeTextBox.text += "\n";
+            */
         }
     }
 
@@ -305,6 +467,144 @@ public class DatabaseManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("FilterByGenre ERROR: " + e);
+        }
+    }
+
+    public void FilterByStartYear()
+    {
+        try
+        {
+            if (minStartYears.text == "" &&
+                maxStartYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                    where (
+                    result.StartYear <=
+                    (maxStartYears.text.TryParseThisShort()))
+
+                    select result)
+                    .ToArray();
+            }
+            else 
+            if (maxStartYears.text == "" &&
+                minStartYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                    where (
+                    result.StartYear >=
+                    (minStartYears.text.TryParseThisShort()))
+
+                    select result)
+                    .ToArray();
+            }
+            else 
+            if (minStartYears.text != "" &&
+                maxStartYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                    where (
+                    (result.StartYear >=
+                    (minStartYears.text.TryParseThisShort())) &&
+
+                    (result.StartYear <=
+                    (maxStartYears.text.TryParseThisShort())))
+
+                    select result)
+                    .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByStartYear ERROR: " + e);
+        }
+    }
+
+    public void FilterByEndYear()
+    {
+        try
+        {
+            if (minEndYears.text == "" &&
+                maxEndYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                     where (
+                     result.EndYear <=
+                     (maxEndYears.text.TryParseThisShort()))
+
+                     select result)
+                    .ToArray();
+            }
+            else
+            if (maxEndYears.text == "" &&
+                minEndYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                     where (
+                     result.EndYear >=
+                     (minEndYears.text.TryParseThisShort()))
+
+                     select result)
+                    .ToArray();
+            }
+            else
+            if (minEndYears.text != "" && 
+                maxEndYears.text != "")
+            {
+                results =
+                    (from result in results
+
+                     where (
+                     (result.EndYear >=
+                     (minEndYears.text.TryParseThisShort())) &&
+
+                     (result.EndYear <=
+                     (maxEndYears.text.TryParseThisShort())))
+
+                     select result)
+                    .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByEndYear ERROR: " + e);
+        }
+    }
+
+    public void FilterByAdultOnly()
+    {
+        try
+        {
+            if (adultsOnlyDropDown.options
+                [adultsOnlyDropDown.value].text != "All")
+            {
+                results =
+                    (from result in results
+                     
+                     where result
+                     .IsAdultOnly
+                     .ToString()
+                     .Contains(
+                         adultsOnlyDropDown
+                         .options[adultsOnlyDropDown.value]
+                         .text)
+
+                     select result)
+                    .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByAdultsOnly ERROR: " + e);
         }
     }
 
@@ -498,8 +798,17 @@ public class DatabaseManager : MonoBehaviour
         string[] entryTitleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
 
-        // Add valid genres to our genres list
+        // Add type to our types list
         AddType(entryType);
+
+        // Add start year to our start years list
+        AddStartYear(entryStartYear);
+
+        // Add end year to our end years list
+        AddEndYear(entryEndYear);
+
+        // Add adult only to our adults only list
+        AddAdultOnly(entryIsAdult);
 
         // Check for invalid genres
         CheckInvalidGenres(entryGenres, entryTitleGenres);
@@ -564,15 +873,30 @@ public class DatabaseManager : MonoBehaviour
                 entryGenres.Add(genre);
     }
 
+    private void AddType(string type)
+    {
+        types.Add(type);
+    }
+
+    private void AddStartYear(short? startYear)
+    {
+        startYears.Add(startYear);
+    }
+
+    private void AddEndYear(short? endYear)
+    {
+        endYears.Add(endYear);
+    }
+
+    private void AddAdultOnly(bool adultOnly)
+    {
+        adultsOnly.Add(adultOnly);
+    }
+
     private void AddGenres(ICollection<string> entryGenres)
     {
         foreach (string genre in entryGenres)
             genres.Add(genre);
-    }
-
-    private void AddType(string type)
-    {
-        types.Add(type);
     }
 
     private void AddNewEntry(
@@ -604,10 +928,13 @@ public class DatabaseManager : MonoBehaviour
     {
         return (from entry in entries
 
-                where entry
-                .MainTitle
-                .ToLower()
-                .Contains(input.ToLower())
+                where (
+
+                entry.MainTitle
+                .ToLower().Contains(input.ToLower()) ||
+
+                entry.SecondaryTitle
+                .ToLower().Contains(input.ToLower()))
 
                 select entry)
                 .ToArray();

@@ -41,4 +41,39 @@ public static class MyOtherExtensions
     {
         return string.Join(String.Empty, collection);
     }
+
+    public static short? TryParseThisShort(this string field)
+    {
+        try
+        {
+            short aux;
+
+            return short.TryParse(field, out aux)
+                ? (short?)aux
+                : null;
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
+        }
+    }
+
+    public static bool TryParseThisBool(this string field)
+    {
+        try
+        {
+            if (field == "0")
+                return false;
+            else
+                return true;
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
+        }
+    }
 }
