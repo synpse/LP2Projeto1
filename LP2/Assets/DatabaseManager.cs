@@ -42,6 +42,18 @@ public class DatabaseManager : MonoBehaviour
     [SerializeField]
     private GameObject entryPanel;
 
+    [SerializeField]
+    private Toggle typesToggle;
+
+    [SerializeField]
+    private Toggle genresToggle;
+
+    [SerializeField]
+    private Dropdown typesDropDown2;
+
+    [SerializeField]
+    private Dropdown genresDropDown2;
+
     private Text entryPanelText;
 
     private const string appName = "MyIMDBSearcher";
@@ -168,7 +180,16 @@ public class DatabaseManager : MonoBehaviour
                 new Dropdown.OptionData(type));
         }
 
-        typesDropDown.value = 0;
+        typesDropDown2.options.Clear();
+
+        typesDropDown2.options.Add(
+            new Dropdown.OptionData("All"));
+
+        foreach (string type in types)
+        {
+            typesDropDown2.options.Add(
+                new Dropdown.OptionData(type));
+        }
 
         // adults only
         adultsOnlyDropDown.options.Clear();
@@ -190,6 +211,15 @@ public class DatabaseManager : MonoBehaviour
         foreach (string genre in genres)
         {
             genresDropDown.options.Add(new Dropdown.OptionData(genre));
+        }
+
+        genresDropDown2.options.Clear();
+
+        genresDropDown2.options.Add(new Dropdown.OptionData("All"));
+
+        foreach (string genre in genres)
+        {
+            genresDropDown2.options.Add(new Dropdown.OptionData(genre));
         }
     }
 
@@ -248,9 +278,6 @@ public class DatabaseManager : MonoBehaviour
 
     public void GetEntryInfo(Button button)
     {
-        // Open entry info panel
-        OpenPanel();
-
         // Get text from button child
         Text tempButtonText = button.GetComponentInChildren<Text>();
 
@@ -263,9 +290,10 @@ public class DatabaseManager : MonoBehaviour
             // If our iterated object text is the same as our button text
             if (buttonText.text == tempButtonText.text)
             {
-                // Set our current selected entry to numMaxEntriesOnScreen
-                // times the page we're currently at, plus the index
-                currentSelected = results[numMaxEntriesOnScreen * page + i];
+                if (i <= buttonsText.Length)
+                    // Set our current selected entry to numMaxEntriesOnScreen
+                    // times the page we're currently at, plus the index
+                    currentSelected = results[numMaxEntriesOnScreen * page + i];
                 // Break or iteration as we don't need continue
                 break;
             }
@@ -274,71 +302,77 @@ public class DatabaseManager : MonoBehaviour
             i++;
         }
 
-        bool firstGenre = true;
-
-        entryPanelText.text = "";
-
-        entryPanelText.text += 
-            $"\t\t{currentSelected.MainTitle}";
-
-        if (currentSelected.SecondaryTitle != currentSelected.MainTitle)
-            entryPanelText.text +=
-                $":\t{currentSelected.SecondaryTitle}";
-
-        entryPanelText.text += "\n\n";
-
-        entryPanelText.text +=
-            $"\t\tID: {currentSelected.ID}";
-
-        entryPanelText.text += "\n\n";
-
-        entryPanelText.text +=
-            $"\t\tEntry Type: {currentSelected.Type}";
-
-        entryPanelText.text += "\n\n";
-
-        entryPanelText.text +=
-            $"\t\tYear: " +
-            $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
-
-        if (currentSelected.EndYear != null)
-            entryPanelText.text +=
-                $" - {currentSelected.EndYear?.ToString()}";
-
-        entryPanelText.text += "\n\n";
-
-        if (currentSelected.IsAdultOnly)
-            entryPanelText.text +=
-                $"\t\tAudience: Adult Only";
-        else
-            entryPanelText.text +=
-                $"\t\tAudience: Everyone";
-
-        entryPanelText.text += "\n\n";
-
-        foreach (string genre in currentSelected.Genres)
+        if (currentSelected != null)
         {
-            if (!firstGenre)
-                entryPanelText.text += " / ";
+            // Open entry info panel
+            OpenPanel();
+
+            bool firstGenre = true;
+
+            entryPanelText.text = "";
+
+            entryPanelText.text +=
+                $"\t\t{currentSelected.MainTitle}";
+
+            if (currentSelected.SecondaryTitle != currentSelected.MainTitle)
+                entryPanelText.text +=
+                    $":\t{currentSelected.SecondaryTitle}";
+
+            entryPanelText.text += "\n\n";
+
+            entryPanelText.text +=
+                $"\t\tID: {currentSelected.ID}";
+
+            entryPanelText.text += "\n\n";
+
+            entryPanelText.text +=
+                $"\t\tEntry Type: {currentSelected.Type}";
+
+            entryPanelText.text += "\n\n";
+
+            entryPanelText.text +=
+                $"\t\tYear: " +
+                $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
+
+            if (currentSelected.EndYear != null)
+                entryPanelText.text +=
+                    $" - {currentSelected.EndYear?.ToString()}";
+
+            entryPanelText.text += "\n\n";
+
+            if (currentSelected.IsAdultOnly)
+                entryPanelText.text +=
+                    $"\t\tAudience: Adult Only";
             else
-                entryPanelText.text += "\t\tGenres: ";
+                entryPanelText.text +=
+                    $"\t\tAudience: Everyone";
 
-            entryPanelText.text += $"{genre}";
+            entryPanelText.text += "\n\n";
 
-            firstGenre = false;
+            foreach (string genre in currentSelected.Genres)
+            {
+                if (!firstGenre)
+                    entryPanelText.text += " / ";
+                else
+                    entryPanelText.text += "\t\tGenres: ";
+
+                entryPanelText.text += $"{genre}";
+
+                firstGenre = false;
+            }
+
+            if (currentSelected.Genres.JoinToString() == "")
+                entryPanelText.text += $"None";
+
+            entryPanelText.text += "\n\n";
+
+            if (currentSelected.RuntimeMinutes != null)
+                entryPanelText.text +=
+                    $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
+            else
+                entryPanelText.text +=
+                    $"\t\tRuntime: Unknown";
         }
-
-        if (currentSelected.Genres.JoinToString() == "")
-            entryPanelText.text += $"None";
-
-        entryPanelText.text += "\n\n";
-
-        if (currentSelected.RuntimeMinutes != null)
-            entryPanelText.text +=
-                $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
-        else
-            entryPanelText.text +=
-                $"\t\tRuntime: Unknown";
     }
 
     public void OpenPanel()
@@ -349,6 +383,16 @@ public class DatabaseManager : MonoBehaviour
     public void ClosePanel()
     {
         entryPanel.SetActive(false);
+    }
+
+    public void EnableTypesDropdown()
+    {
+        typesDropDown2.gameObject.SetActive(!typesDropDown2.IsActive());
+    }
+
+    public void EnableGenresDropdown()
+    {
+        genresDropDown2.gameObject.SetActive(!genresDropDown2.IsActive());
     }
 
     private void PrintResults(Entry[] results)
@@ -448,7 +492,8 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            if (typesDropDown.options[typesDropDown.value].text != "All")
+            if (typesDropDown.options[typesDropDown.value].text != "All" &&
+                typesDropDown2.options[typesDropDown2.value].text == "All")
             {
                 results =
                     (from result in results
@@ -458,6 +503,44 @@ public class DatabaseManager : MonoBehaviour
                      .Contains(
                          typesDropDown
                          .options[typesDropDown.value]
+                         .text)
+
+                     select result)
+                    .ToArray();
+            }
+            else if (typesDropDown.options[typesDropDown.value].text == "All" &&
+                    typesDropDown2.options[typesDropDown2.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                     where result
+                     .Type
+                     .Contains(
+                         typesDropDown2
+                         .options[typesDropDown2.value]
+                         .text)
+
+                     select result)
+                    .ToArray();
+            }
+            else if (typesDropDown.options[typesDropDown.value].text != "All" &&
+                    typesDropDown2.options[typesDropDown2.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                     where result
+                     .Type
+                     .Contains(
+                         typesDropDown
+                         .options[typesDropDown.value]
+                         .text) ||
+                     result
+                     .Type
+                     .Contains(
+                         typesDropDown2
+                         .options[typesDropDown2.value]
                          .text)
 
                      select result)
@@ -612,7 +695,8 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            if (genresDropDown.options[genresDropDown.value].text != "All")
+            if (genresDropDown.options[genresDropDown.value].text != "All" &&
+                genresDropDown2.options[genresDropDown2.value].text == "All")
             {
                 results =
                     (from result in results
@@ -626,6 +710,47 @@ public class DatabaseManager : MonoBehaviour
                         .text)
 
                     select result)
+                    .ToArray();
+            }
+            else if (genresDropDown.options[genresDropDown.value].text == "All" &&
+                    genresDropDown2.options[genresDropDown2.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                     where result
+                     .Genres
+                     .JoinToString()
+                     .Contains(
+                         genresDropDown2
+                         .options[genresDropDown2.value]
+                         .text)
+
+                     select result)
+                    .ToArray();
+            }
+            else if (genresDropDown.options[genresDropDown.value].text != "All" &&
+                    genresDropDown2.options[genresDropDown2.value].text != "All")
+            {
+                results =
+                    (from result in results
+
+                     where result
+                     .Genres
+                     .JoinToString()
+                     .Contains(
+                         genresDropDown
+                         .options[genresDropDown.value]
+                         .text) ||
+                      result
+                     .Genres
+                     .JoinToString()
+                     .Contains(
+                         genresDropDown2
+                         .options[genresDropDown2.value]
+                         .text)
+
+                     select result)
                     .ToArray();
             }
         }
