@@ -176,11 +176,11 @@ public class DatabaseManager : MonoBehaviour
 
         Reader(fileTitleRatingsFull, LineToRating);
 
+        AssignDropdownValues();
+
         Merge();
 
         CleanUp();
-
-        AssignDropdownValues();
 
         //inputField.onValueChanged.AddListener(
         //delegate {ValueChangeCheck();});
@@ -197,6 +197,8 @@ public class DatabaseManager : MonoBehaviour
                 new Dropdown.OptionData(type));
         }
 
+        typesDropDown.RefreshShownValue();
+
         typesDropDown2.options.Clear();
 
         foreach (string type in types)
@@ -204,6 +206,8 @@ public class DatabaseManager : MonoBehaviour
             typesDropDown2.options.Add(
                 new Dropdown.OptionData(type));
         }
+
+        typesDropDown2.RefreshShownValue();
 
         // adults only
         adultsOnlyDropDown.options.Clear();
@@ -213,6 +217,8 @@ public class DatabaseManager : MonoBehaviour
             adultsOnlyDropDown.options.Add(
                 new Dropdown.OptionData(adultOnly.ToString()));
         }
+
+        adultsOnlyDropDown.RefreshShownValue();
 
         // genres
         genresDropDown.options.Clear();
@@ -224,6 +230,8 @@ public class DatabaseManager : MonoBehaviour
             genresDropDown.options.Add(new Dropdown.OptionData(genre));
         }
 
+        genresDropDown.RefreshShownValue();
+
         genresDropDown2.options.Clear();
 
         genresDropDown2.options.Add(new Dropdown.OptionData("All"));
@@ -232,6 +240,8 @@ public class DatabaseManager : MonoBehaviour
         {
             genresDropDown2.options.Add(new Dropdown.OptionData(genre));
         }
+
+        genresDropDown2.RefreshShownValue();
 
         // ratings
 
@@ -249,6 +259,8 @@ public class DatabaseManager : MonoBehaviour
         ratingsDropDown.options.Add(new Dropdown.OptionData("2+"));
         ratingsDropDown.options.Add(new Dropdown.OptionData("1+"));
         ratingsDropDown.options.Add(new Dropdown.OptionData("Unknown"));
+
+        ratingsDropDown.RefreshShownValue();
     }
 
     private void Merge()
