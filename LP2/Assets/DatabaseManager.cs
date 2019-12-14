@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Globalization;
 
 public class DatabaseManager : MonoBehaviour
 {
@@ -54,22 +55,29 @@ public class DatabaseManager : MonoBehaviour
     [SerializeField]
     private Dropdown genresDropDown2;
 
+    [SerializeField]
+    private Dropdown ratingsDropDown;
+
     private Text entryPanelText;
 
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
+    private const string fileTitleRatings = "title.ratings.tsv.gz";
     private const int numMaxEntriesOnScreen = 11;
 
     private int numEntriesOnScreen;
     private int page;
     private int pages;
 
-    private ICollection<Entry> entries;
+    private Dictionary<string, Entry> tempEntries;
+    private Dictionary<string, float?> tempRatingEntries;
+    private Dictionary<string, Entry> entries;
     private ISet<string> types;
     private ISet<short?> startYears;
     private ISet<short?> endYears;
     private ISet<bool> adultsOnly;
     private ISet<string> genres;
+    private ISet<float?> ratings;
 
     private Entry[] results;
 
@@ -94,6 +102,7 @@ public class DatabaseManager : MonoBehaviour
                 FilterByEndYear();
                 FilterByAdultOnly();
                 FilterByGenre();
+                FilterByRating();
                 numEntriesOnScreen = 0;
                 page = 0;
                 pages = Mathf.CeilToInt(CountResults(results) / 
@@ -137,13 +146,12 @@ public class DatabaseManager : MonoBehaviour
 
     private void Initialize()
     {
-        int numEntries = 0;
-
         types = new HashSet<string>();
         startYears = new HashSet<short?>();
         endYears = new HashSet<short?>();
         adultsOnly = new HashSet<bool>();
         genres = new HashSet<string>();
+        ratings = new HashSet<float?>();
 
         string directoryPath = Path.Combine(
             Environment.GetFolderPath(
@@ -154,11 +162,23 @@ public class DatabaseManager : MonoBehaviour
             directoryPath, 
             fileTitleBasics);
 
-        Reader(fileTitleBasicsFull, line => numEntries++);
+        string fileTitleRatingsFull = Path.Combine(
+            directoryPath,
+            fileTitleRatings);
 
-        entries = new List<Entry>(numEntries);
+        tempEntries = new Dictionary<string, Entry>();
+
+        tempRatingEntries = new Dictionary<string, float?>();
+
+        entries = new Dictionary<string, Entry>();
 
         Reader(fileTitleBasicsFull, LineToEntry);
+
+        Reader(fileTitleRatingsFull, LineToRating);
+
+        Merge();
+
+        CleanUp();
 
         AssignDropdownValues();
 
@@ -171,9 +191,6 @@ public class DatabaseManager : MonoBehaviour
         // types
         typesDropDown.options.Clear();
 
-        typesDropDown.options.Add(
-            new Dropdown.OptionData("All"));
-
         foreach (string type in types)
         {
             typesDropDown.options.Add(
@@ -181,9 +198,6 @@ public class DatabaseManager : MonoBehaviour
         }
 
         typesDropDown2.options.Clear();
-
-        typesDropDown2.options.Add(
-            new Dropdown.OptionData("All"));
 
         foreach (string type in types)
         {
@@ -193,9 +207,6 @@ public class DatabaseManager : MonoBehaviour
 
         // adults only
         adultsOnlyDropDown.options.Clear();
-
-        adultsOnlyDropDown.options.Add(
-            new Dropdown.OptionData("All"));
 
         foreach (bool adultOnly in adultsOnly)
         {
@@ -221,9 +232,68 @@ public class DatabaseManager : MonoBehaviour
         {
             genresDropDown2.options.Add(new Dropdown.OptionData(genre));
         }
+
+        // ratings
+
+        ratingsDropDown.options.Clear();
+
+        ratingsDropDown.options.Add(new Dropdown.OptionData("All"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("10"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("9+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("8+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("7+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("6+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("5+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("4+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("3+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("2+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("1+"));
+        ratingsDropDown.options.Add(new Dropdown.OptionData("Unknown"));
     }
 
-    private void Reader(string file, Action<string> lineAction)
+    private void Merge()
+    {
+        foreach (Entry entry in tempEntries.Values)
+        {
+            if (tempRatingEntries.ContainsKey(entry.ID))
+                AddNewEntry(
+                    entries,
+                    entry.ID,
+                    entry.Type,
+                    entry.MainTitle,
+                    entry.SecondaryTitle,
+                    entry.IsAdultOnly,
+                    entry.StartYear,
+                    entry.EndYear,
+                    entry.RuntimeMinutes,
+                    entry.Genres,
+                    tempRatingEntries[entry.ID]);
+            else
+                AddNewEntry(
+                    entries,
+                    entry.ID,
+                    entry.Type,
+                    entry.MainTitle,
+                    entry.SecondaryTitle,
+                    entry.IsAdultOnly,
+                    entry.StartYear,
+                    entry.EndYear,
+                    entry.RuntimeMinutes,
+                    entry.Genres,
+                    null);
+        }
+    }
+
+    private void CleanUp()
+    {
+        tempEntries.Clear();
+        tempRatingEntries.Clear();
+        GC.Collect();
+    }
+
+    private void Reader(
+        string file, 
+        Action<string> lineAction)
     {
         FileStream fs = null;
         GZipStream gzs = null;
@@ -290,10 +360,9 @@ public class DatabaseManager : MonoBehaviour
             // If our iterated object text is the same as our button text
             if (buttonText.text == tempButtonText.text)
             {
-                if (i <= buttonsText.Length)
-                    // Set our current selected entry to numMaxEntriesOnScreen
-                    // times the page we're currently at, plus the index
-                    currentSelected = results[numMaxEntriesOnScreen * page + i];
+                // Set our current selected entry to numMaxEntriesOnScreen
+                // times the page we're currently at, plus the index
+                currentSelected = results[numMaxEntriesOnScreen * page + i];
                 // Break or iteration as we don't need continue
                 break;
             }
@@ -362,7 +431,7 @@ public class DatabaseManager : MonoBehaviour
             }
 
             if (currentSelected.Genres.JoinToString() == "")
-                entryPanelText.text += $"None";
+                entryPanelText.text += $"\t\tNone";
 
             entryPanelText.text += "\n\n";
 
@@ -372,6 +441,11 @@ public class DatabaseManager : MonoBehaviour
             else
                 entryPanelText.text +=
                     $"\t\tRuntime: Unknown";
+
+            entryPanelText.text += "\n\n";
+
+            entryPanelText.text +=
+                    $"\t\tRating: {currentSelected.Rating}";
         }
     }
 
@@ -492,60 +566,24 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            if (typesDropDown.options[typesDropDown.value].text != "All" &&
-                typesDropDown2.options[typesDropDown2.value].text == "All")
-            {
-                results =
-                    (from result in results
+            results =
+                (from result in results
 
-                     where result
-                     .Type
-                     .Contains(
-                         typesDropDown
-                         .options[typesDropDown.value]
-                         .text)
+                 where result
+                 .Type
+                 .Contains(
+                     typesDropDown
+                     .options[typesDropDown.value]
+                     .text) ||
+                 result
+                 .Type
+                 .Contains(
+                     typesDropDown2
+                     .options[typesDropDown2.value]
+                     .text)
 
-                     select result)
-                    .ToArray();
-            }
-            else if (typesDropDown.options[typesDropDown.value].text == "All" &&
-                    typesDropDown2.options[typesDropDown2.value].text != "All")
-            {
-                results =
-                    (from result in results
-
-                     where result
-                     .Type
-                     .Contains(
-                         typesDropDown2
-                         .options[typesDropDown2.value]
-                         .text)
-
-                     select result)
-                    .ToArray();
-            }
-            else if (typesDropDown.options[typesDropDown.value].text != "All" &&
-                    typesDropDown2.options[typesDropDown2.value].text != "All")
-            {
-                results =
-                    (from result in results
-
-                     where result
-                     .Type
-                     .Contains(
-                         typesDropDown
-                         .options[typesDropDown.value]
-                         .text) ||
-                     result
-                     .Type
-                     .Contains(
-                         typesDropDown2
-                         .options[typesDropDown2.value]
-                         .text)
-
-                     select result)
-                    .ToArray();
-            }
+                 select result)
+                .ToArray();
         }
         catch (Exception e)
         {
@@ -695,8 +733,10 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            if (genresDropDown.options[genresDropDown.value].text != "All" &&
-                genresDropDown2.options[genresDropDown2.value].text == "All")
+            if (genresDropDown
+                .options[genresDropDown.value].text != "All" &&
+                genresDropDown2
+                .options[genresDropDown2.value].text == "All")
             {
                 results =
                     (from result in results
@@ -712,8 +752,10 @@ public class DatabaseManager : MonoBehaviour
                     select result)
                     .ToArray();
             }
-            else if (genresDropDown.options[genresDropDown.value].text == "All" &&
-                    genresDropDown2.options[genresDropDown2.value].text != "All")
+            else if (genresDropDown
+                    .options[genresDropDown.value].text == "All" &&
+                    genresDropDown2
+                    .options[genresDropDown2.value].text != "All")
             {
                 results =
                     (from result in results
@@ -729,8 +771,10 @@ public class DatabaseManager : MonoBehaviour
                      select result)
                     .ToArray();
             }
-            else if (genresDropDown.options[genresDropDown.value].text != "All" &&
-                    genresDropDown2.options[genresDropDown2.value].text != "All")
+            else if (genresDropDown
+                    .options[genresDropDown.value].text != "All" &&
+                    genresDropDown2
+                    .options[genresDropDown2.value].text != "All")
             {
                 results =
                     (from result in results
@@ -757,6 +801,130 @@ public class DatabaseManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("FilterByGenre ERROR: " + e);
+        }
+    }
+
+    public void FilterByRating()
+    {
+        try
+        {
+            if (ratingsDropDown.options
+                [ratingsDropDown.value].text != "All")
+            {
+                if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "10")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating == 10
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "9+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 9
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "8+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 8
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "7+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 7
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "6+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 6
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "5+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 5
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "4+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 4
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "3+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 3
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "2+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 2
+
+                             select result)
+                            .ToArray();
+
+                else if (ratingsDropDown.options
+                    [ratingsDropDown.value].text == "1+")
+                        results =
+                            (from result in results
+
+                             where result
+                             .Rating >= 1
+
+                             select result)
+                            .ToArray();
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("FilterByAdultsOnly ERROR: " + e);
         }
     }
 
@@ -891,6 +1059,28 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    public void OrderByRating()
+    {
+        try
+        {
+            results =
+                (from result in results
+                 select result)
+                .OrderBy(result => result.Rating)
+                .ThenBy(result => result.MainTitle)
+                .ToArray();
+
+            page = 0;
+            numEntriesOnScreen = 0;
+
+            PrintResults(results);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("OrderByRating ERROR: " + e);
+        }
+    }
+
     private void LineToEntry(string line)
     {
         string[] fields = line.Split('\t');
@@ -943,6 +1133,7 @@ public class DatabaseManager : MonoBehaviour
 
         // Add Entry
         AddNewEntry(
+            tempEntries,
             entryID, 
             entryType, 
             entryMainTitle, 
@@ -951,7 +1142,23 @@ public class DatabaseManager : MonoBehaviour
             entryStartYear, 
             entryEndYear, 
             entryRuntimeMinutes, 
-            entryGenres);
+            entryGenres,
+            null);
+    }
+
+    private void LineToRating(string line)
+    {
+        string[] fields = line.Split('\t');
+
+        // ID
+        string entryID = fields[0];
+
+        // Rating
+        float? entryRating = TryParseFloat(fields[1]);
+
+        AddRating(entryRating);
+
+        tempRatingEntries.Add(entryID, entryRating);
     }
 
     public short? TryParseShort(string field)
@@ -967,7 +1174,31 @@ public class DatabaseManager : MonoBehaviour
         catch (Exception e)
         {
             throw new InvalidOperationException(
-                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                $"Tried to parse '{field}' as short?, " +
+                $"but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
+        }
+    }
+
+    public float? TryParseFloat(string field)
+    {
+        try
+        {
+            float aux;
+            NumberStyles style = 
+                NumberStyles.Number | NumberStyles.AllowCurrencySymbol;
+            CultureInfo culture = 
+                CultureInfo.CreateSpecificCulture("en-US");
+
+            return float.TryParse(field, style, culture, out aux)
+                ? (float?)aux
+                : null;
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Tried to parse '{field}' as float?, " +
+                $"but got exception '{e.Message}'"
                 + $" with this stack trace: {e.StackTrace}");
         }
     }
@@ -984,7 +1215,8 @@ public class DatabaseManager : MonoBehaviour
         catch (Exception e)
         {
             throw new InvalidOperationException(
-                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                $"Tried to parse '{field}' as bool, " +
+                $"but got exception '{e.Message}'"
                 + $" with this stack trace: {e.StackTrace}");
         }
     }
@@ -1023,8 +1255,14 @@ public class DatabaseManager : MonoBehaviour
         foreach (string genre in entryGenres)
             genres.Add(genre);
     }
+    private void AddRating(float? rating)
+    {
+        ratings.Add(rating);
+    }
+
 
     private void AddNewEntry(
+        Dictionary<string, Entry> dict,
         string entryID,
         string entryType,
         string entryMainTitle,
@@ -1033,7 +1271,8 @@ public class DatabaseManager : MonoBehaviour
         short? entryStartYear,
         short? entryEndYear,
         short? entryRuntimeMinutes,
-        IEnumerable<string> entryGenres)
+        IEnumerable<string> entryGenres,
+        float? entryRating)
     {
         Entry entry = new Entry(
             entryID, 
@@ -1044,9 +1283,10 @@ public class DatabaseManager : MonoBehaviour
             entryStartYear, 
             entryEndYear, 
             entryRuntimeMinutes, 
-            entryGenres.ToArray());
+            entryGenres.ToArray(),
+            entryRating);
 
-        entries.Add(entry);
+        dict.Add(entryID, entry);
     }
 
     private Entry[] SelectEntries(string input)
@@ -1055,13 +1295,13 @@ public class DatabaseManager : MonoBehaviour
 
                 where (
 
-                entry.MainTitle
+                entry.Value.MainTitle
                 .ToLower().Contains(input.ToLower()) ||
 
-                entry.SecondaryTitle
+                entry.Value.SecondaryTitle
                 .ToLower().Contains(input.ToLower()))
 
-                select entry)
+                select entry.Value)
                 .ToArray();
     }
 

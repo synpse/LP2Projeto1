@@ -13,6 +13,7 @@ public class Entry
     public short? EndYear { get; }
     public short? RuntimeMinutes { get; }
     public IEnumerable<string> Genres { get; }
+    public float? Rating { get; }
 
     public Entry(
         string ID,
@@ -23,7 +24,8 @@ public class Entry
         short? StartYear,
         short? EndYear,
         short? RuntimeMinutes,
-        IEnumerable<string> Genres)
+        IEnumerable<string> Genres,
+        float? Rating)
     {
         this.ID = ID;
         this.Type = Type;
@@ -34,5 +36,6 @@ public class Entry
         this.EndYear = EndYear;
         this.RuntimeMinutes = RuntimeMinutes;
         this.Genres = Genres;
+        this.Rating = Rating;
     }
 }
