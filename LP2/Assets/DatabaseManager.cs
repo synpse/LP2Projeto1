@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using System.Globalization;
 
 public class DatabaseManager : MonoBehaviour
@@ -63,14 +62,15 @@ public class DatabaseManager : MonoBehaviour
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
     private const string fileTitleRatings = "title.ratings.tsv.gz";
+    private const string fileTitleEpisodes = "title.episode.tsv.gz";
     private const int numMaxEntriesOnScreen = 11;
 
     private int numEntriesOnScreen;
     private int page;
     private int pages;
 
-    private Dictionary<string, Entry> tempEntries;
     private Dictionary<string, float?> tempRatingEntries;
+    private Dictionary<string, string[]> tempEpisodes;
     private Dictionary<string, Entry> entries;
     private ISet<string> types;
     private ISet<short?> startYears;
@@ -80,7 +80,6 @@ public class DatabaseManager : MonoBehaviour
     private ISet<float?> ratings;
 
     private Entry[] results;
-
     private Entry currentSelected;
 
     private void Start()
@@ -166,19 +165,23 @@ public class DatabaseManager : MonoBehaviour
             directoryPath,
             fileTitleRatings);
 
-        tempEntries = new Dictionary<string, Entry>();
+        string fileTitleEpisodesFull = Path.Combine(
+            directoryPath,
+            fileTitleEpisodes);
 
         tempRatingEntries = new Dictionary<string, float?>();
 
-        entries = new Dictionary<string, Entry>();
+        tempEpisodes = new Dictionary<string, string[]>();
 
-        Reader(fileTitleBasicsFull, LineToEntry);
+        entries = new Dictionary<string, Entry>();
 
         Reader(fileTitleRatingsFull, LineToRating);
 
-        AssignDropdownValues();
+        Reader(fileTitleEpisodesFull, LineToEpisode);
 
-        Merge();
+        Reader(fileTitleBasicsFull, LineToEntry);
+
+        AssignDropdownValues();
 
         CleanUp();
 
@@ -263,43 +266,10 @@ public class DatabaseManager : MonoBehaviour
         ratingsDropDown.RefreshShownValue();
     }
 
-    private void Merge()
-    {
-        foreach (Entry entry in tempEntries.Values)
-        {
-            if (tempRatingEntries.ContainsKey(entry.ID))
-                AddNewEntry(
-                    entries,
-                    entry.ID,
-                    entry.Type,
-                    entry.MainTitle,
-                    entry.SecondaryTitle,
-                    entry.IsAdultOnly,
-                    entry.StartYear,
-                    entry.EndYear,
-                    entry.RuntimeMinutes,
-                    entry.Genres,
-                    tempRatingEntries[entry.ID]);
-            else
-                AddNewEntry(
-                    entries,
-                    entry.ID,
-                    entry.Type,
-                    entry.MainTitle,
-                    entry.SecondaryTitle,
-                    entry.IsAdultOnly,
-                    entry.StartYear,
-                    entry.EndYear,
-                    entry.RuntimeMinutes,
-                    entry.Genres,
-                    null);
-        }
-    }
-
     private void CleanUp()
     {
-        tempEntries.Clear();
         tempRatingEntries.Clear();
+        tempEpisodes.Clear();
         GC.Collect();
     }
 
@@ -392,72 +362,189 @@ public class DatabaseManager : MonoBehaviour
 
             entryPanelText.text = "";
 
-            entryPanelText.text +=
-                $"\t\t{currentSelected.MainTitle}";
-
-            if (currentSelected.SecondaryTitle != currentSelected.MainTitle)
-                entryPanelText.text +=
-                    $":\t{currentSelected.SecondaryTitle}";
-
-            entryPanelText.text += "\n\n";
-
-            entryPanelText.text +=
-                $"\t\tID: {currentSelected.ID}";
-
-            entryPanelText.text += "\n\n";
-
-            entryPanelText.text +=
-                $"\t\tEntry Type: {currentSelected.Type}";
-
-            entryPanelText.text += "\n\n";
-
-            entryPanelText.text +=
-                $"\t\tYear: " +
-                $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
-
-            if (currentSelected.EndYear != null)
-                entryPanelText.text +=
-                    $" - {currentSelected.EndYear?.ToString()}";
-
-            entryPanelText.text += "\n\n";
-
-            if (currentSelected.IsAdultOnly)
-                entryPanelText.text +=
-                    $"\t\tAudience: Adult Only";
-            else
-                entryPanelText.text +=
-                    $"\t\tAudience: Everyone";
-
-            entryPanelText.text += "\n\n";
-
-            foreach (string genre in currentSelected.Genres)
+            if (currentSelected.Type == "tvSeries")
             {
-                if (!firstGenre)
-                    entryPanelText.text += " / ";
+                entryPanelText.text +=
+                    $"\t\t{currentSelected.MainTitle}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                        $"\t\tRating: {currentSelected.Rating}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tEntry Type: {currentSelected.Type}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tYear: " +
+                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+
+                if (currentSelected.EndYear != null)
+                    entryPanelText.text +=
+                        $" - {currentSelected.EndYear?.ToString()}";
+
+                entryPanelText.text += "\n\n";
+
+                if (currentSelected.IsAdultOnly)
+                    entryPanelText.text +=
+                        $"\t\tAudience: Adult Only";
                 else
-                    entryPanelText.text += "\t\tGenres: ";
+                    entryPanelText.text +=
+                        $"\t\tAudience: Everyone";
 
-                entryPanelText.text += $"{genre}";
+                entryPanelText.text += "\n\n";
 
-                firstGenre = false;
+                foreach (string genre in currentSelected.Genres)
+                {
+                    if (!firstGenre)
+                        entryPanelText.text += " / ";
+                    else
+                        entryPanelText.text += "\t\tGenres: ";
+
+                    entryPanelText.text += $"{genre}";
+
+                    firstGenre = false;
+                }
+
+                if (currentSelected.Genres.JoinToString() == "")
+                    entryPanelText.text += $"\t\tNone";
             }
-
-            if (currentSelected.Genres.JoinToString() == "")
-                entryPanelText.text += $"\t\tNone";
-
-            entryPanelText.text += "\n\n";
-
-            if (currentSelected.RuntimeMinutes != null)
+            else if (currentSelected.Type == "tvEpisode")
+            {
                 entryPanelText.text +=
-                    $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
+                    $"\t\t{currentSelected.MainTitle}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tSeries: " +
+                    $"{entries[currentSelected.ParentID].MainTitle}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tSeason: {currentSelected.SeasonNumber}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tEpisode: {currentSelected.EpisodeNumber}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                        $"\t\tRating: {currentSelected.Rating}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tEntry Type: {currentSelected.Type}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tYear: " +
+                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+
+                if (currentSelected.EndYear != null)
+                    entryPanelText.text +=
+                        $" - {currentSelected.EndYear?.ToString()}";
+
+                entryPanelText.text += "\n\n";
+
+                if (currentSelected.IsAdultOnly)
+                    entryPanelText.text +=
+                        $"\t\tAudience: Adult Only";
+                else
+                    entryPanelText.text +=
+                        $"\t\tAudience: Everyone";
+
+                entryPanelText.text += "\n\n";
+
+                foreach (string genre in currentSelected.Genres)
+                {
+                    if (!firstGenre)
+                        entryPanelText.text += " / ";
+                    else
+                        entryPanelText.text += "\t\tGenres: ";
+
+                    entryPanelText.text += $"{genre}";
+
+                    firstGenre = false;
+                }
+
+                if (currentSelected.Genres.JoinToString() == "")
+                    entryPanelText.text += $"\t\tNone";
+            }
             else
+            {
                 entryPanelText.text +=
-                    $"\t\tRuntime: Unknown";
+                    $"\t\t{currentSelected.MainTitle}";
 
-            entryPanelText.text += "\n\n";
+                if (currentSelected.SecondaryTitle != 
+                    currentSelected.MainTitle)
+                    entryPanelText.text +=
+                        $":\t{currentSelected.SecondaryTitle}";
 
-            entryPanelText.text +=
-                    $"\t\tRating: {currentSelected.Rating}";
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tEntry Type: {currentSelected.Type}";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                    $"\t\tYear: " +
+                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+
+                if (currentSelected.EndYear != null)
+                    entryPanelText.text +=
+                        $" - {currentSelected.EndYear?.ToString()}";
+
+                entryPanelText.text += "\n\n";
+
+                if (currentSelected.IsAdultOnly)
+                    entryPanelText.text +=
+                        $"\t\tAudience: Adult Only";
+                else
+                    entryPanelText.text +=
+                        $"\t\tAudience: Everyone";
+
+                entryPanelText.text += "\n\n";
+
+                foreach (string genre in currentSelected.Genres)
+                {
+                    if (!firstGenre)
+                        entryPanelText.text += " / ";
+                    else
+                        entryPanelText.text += "\t\tGenres: ";
+
+                    entryPanelText.text += $"{genre}";
+
+                    firstGenre = false;
+                }
+
+                if (currentSelected.Genres.JoinToString() == "")
+                    entryPanelText.text += $"\t\tNone";
+
+                entryPanelText.text += "\n\n";
+
+                if (currentSelected.RuntimeMinutes != null)
+                    entryPanelText.text +=
+                        $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
+                else
+                    entryPanelText.text +=
+                        $"\t\tRuntime: Unknown";
+
+                entryPanelText.text += "\n\n";
+
+                entryPanelText.text +=
+                        $"\t\tRating: {currentSelected.Rating}";
+            }
         }
     }
 
@@ -1125,6 +1212,33 @@ public class DatabaseManager : MonoBehaviour
         string[] entryTitleGenres = fields[8].Split(',');
         ICollection<string> entryGenres = new List<string>();
 
+        // Rating
+        float? entryRating = null;
+
+        if (tempRatingEntries.ContainsKey(entryID))
+            entryRating = tempRatingEntries[entryID];
+
+        // ParentID
+        string entryParentID = null;
+
+        // Season Number
+        short? entrySeasonNumber = null;
+
+        // Episode Number
+        short? entryEpisodeNumber = null;
+
+        if (tempEpisodes.ContainsKey(entryID))
+        {
+            entryParentID =
+                tempEpisodes[entryID].GetValue(1).ToString();
+
+            entrySeasonNumber =
+                TryParseShort(tempEpisodes[entryID].GetValue(2).ToString());
+
+            entryEpisodeNumber =
+                TryParseShort(tempEpisodes[entryID].GetValue(3).ToString());
+        }
+
         // Add type to our types list
         AddType(entryType);
 
@@ -1145,17 +1259,19 @@ public class DatabaseManager : MonoBehaviour
 
         // Add Entry
         AddNewEntry(
-            tempEntries,
-            entryID, 
-            entryType, 
-            entryMainTitle, 
-            entrySecondaryTitle, 
-            entryIsAdult, 
-            entryStartYear, 
-            entryEndYear, 
-            entryRuntimeMinutes, 
+            entryID,
+            entryType,
+            entryMainTitle,
+            entrySecondaryTitle,
+            entryIsAdult,
+            entryStartYear,
+            entryEndYear,
+            entryRuntimeMinutes,
             entryGenres,
-            null);
+            entryRating,
+            entryParentID,
+            entrySeasonNumber,
+            entryEpisodeNumber);
     }
 
     private void LineToRating(string line)
@@ -1171,6 +1287,13 @@ public class DatabaseManager : MonoBehaviour
         AddRating(entryRating);
 
         tempRatingEntries.Add(entryID, entryRating);
+    }
+
+    private void LineToEpisode(string line)
+    {
+        string[] fields = line.Split('\t');
+
+        tempEpisodes.Add(fields[0], fields);
     }
 
     public short? TryParseShort(string field)
@@ -1274,7 +1397,6 @@ public class DatabaseManager : MonoBehaviour
 
 
     private void AddNewEntry(
-        Dictionary<string, Entry> dict,
         string entryID,
         string entryType,
         string entryMainTitle,
@@ -1284,7 +1406,10 @@ public class DatabaseManager : MonoBehaviour
         short? entryEndYear,
         short? entryRuntimeMinutes,
         IEnumerable<string> entryGenres,
-        float? entryRating)
+        float? entryRating,
+        string entryParentID,
+        short? entrySeasonNumber,
+        short? entryEpisodeNumber)
     {
         Entry entry = new Entry(
             entryID, 
@@ -1296,9 +1421,12 @@ public class DatabaseManager : MonoBehaviour
             entryEndYear, 
             entryRuntimeMinutes, 
             entryGenres.ToArray(),
-            entryRating);
+            entryRating,
+            entryParentID,
+            entrySeasonNumber,
+            entryEpisodeNumber);
 
-        dict.Add(entryID, entry);
+        entries.Add(entryID, entry);
     }
 
     private Entry[] SelectEntries(string input)
