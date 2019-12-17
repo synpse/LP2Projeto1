@@ -1,26 +1,27 @@
 # Projeto LP2  
 ## Introdução
-Este projeto esta a ser desenvolvido em ambito da disciplina de Linguagens de Programação II (LP2),onde tem que ser desenvolvido uma aplicaçao em c# que realize pesquisas na base de dados do [IMDB].
-A aplicaçao vai ser desenvolvida em Unity 2019.2.9f1.
-O projecto encontra-se no seguinte repositorio do [git].
+Este projeto esta a ser desenvolvido em ambito da disciplina de Linguagens de Programação II (LP2), onde tem que ser desenvolvido uma aplicação em C# que realize pesquisas na base de dados do [IMDB].
+O projeto encontra-se no seguinte repositorio do [git].
 ## Autoria
-Este projeto esta a ser desnvolvido pelos seguintes alunos:
+Projeto desenvolvido por:
 
 * Diogo Maia Nº21901308
 * Tiago Alves Nº21701031
+
 ## Distribuiçao de Tarefas
-Descriçao de como as tarefas foram distribuidas entre os membros do grupo
-## Arquitetura da soluçao
-Descriçao da arquitetura da soluçao
-## Descriçao da soluçao
-Descriçao da soluçao, onde sera indicado as coleçoes usadas e o porque dos algoritmos usados.
-## Um diagrama UML
-Um diagrama UML de classes simples descrevendo a estrutura de classes
-## Referencias
+As tarefas foram repartidas irmamente pelos 2 membros do grupo.
+
+## Arquitetura da Solução
+### Descrição da Solução
+O nosso projeto foi feito em "Unity 2019.2.9f1", no qual 
+## Diagrama UML
+![DiagramaUML](UML.svg)
+
+## Referências
 Agradecimento ao grupo constituido por:
-* Andre Pedro;
+* André Pedro;
 * Ines Gonçalves;
-* Ines Nunes;
+* Diana Nóia.
 
 
 [IMDB]:https://www.imdb.com/
