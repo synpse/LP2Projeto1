@@ -9,7 +9,7 @@ Projeto desenvolvido por:
 * Tiago Alves Nº 21701031
 
 ## Distribuição de Tarefas
-As tarefas foram repartidas irmamente pelos 2 membros do grupo.
+As tarefas foram repartidas igualmente pelos 2 membros do grupo. No entanto, o Diogo Maia não conseguiu executar uma pequena parte das suas tarefas devido à sobreposição de projetos, nomeadamente o de Inteligência Artificial, ao qual deu prioridade.
 
 ## Arquitetura da Solução
 ### Descrição da Solução
@@ -26,11 +26,13 @@ O utilizador escreve o que quer pesquisar, selecciona os diferentes filtros e ca
 ![DiagramaUML](UML.svg)
 
 ## Referências
-Agradecimento ao grupo constituido por:
-* André Pedro;
-* Inês Gonçalves;
-* Diana Nóia.
+* [Código-Exemplo] do Prof. Nuno Fachada
 
+* Agradecimento ao grupo constituido por:
+    * André Pedro;
+    * Inês Gonçalves;
+    * Diana Nóia.
 
 [IMDB]:https://www.imdb.com/
 [github]:https://github.com/synpse/LP2Projeto1
+[Código-Exemplo]:https://github.com/VideojogosLusofona/lp2_2019_p1/tree/master/sample
