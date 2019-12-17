@@ -7,10 +7,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Globalization;
 
+/// <summary>
+/// Main class of the app that searches and orders the database
+/// </summary>
 public class DatabaseManager : MonoBehaviour
 {
     /// <summary>
-    /// ImputField that is used to search for entries
+    /// InputField that is used to search for entries
     /// </summary>
     [SerializeField]
     private InputField inputField;

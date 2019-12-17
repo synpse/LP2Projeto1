@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 
 /// <summary>
-/// Extensions
+/// Extensions used in DatabaseManager
 /// </summary>
 public static class MyOtherExtensions
 {
