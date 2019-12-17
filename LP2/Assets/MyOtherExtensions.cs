@@ -2,8 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 
+/// <summary>
+/// Extensions
+/// </summary>
 public static class MyOtherExtensions
 {
+    /// <summary>
+    /// Extension used to check is an array of strings has some specific value
+    /// </summary>
+    /// <param name="values"></param>
+    /// <param name="searchedValue"></param>
+    /// <returns></returns>
     public static bool HasValue(this string[] values, string searchedValue)
     {
         foreach (string value in values)
@@ -17,6 +26,11 @@ public static class MyOtherExtensions
         return false;
     }
 
+    /// <summary>
+    /// Extension that is used to remove duplicates from a dictionary
+    /// </summary>
+    /// <param name="dict"></param>
+    /// <returns></returns>
     public static Dictionary<string, string[]> RemoveDuplicates(
         this Dictionary<string, string[]> dict)
     {
@@ -37,11 +51,21 @@ public static class MyOtherExtensions
         return dbDictUniques;
     }
 
+    /// <summary>
+    /// Extension used to join an Ineumerable of strings
+    /// </summary>
+    /// <param name="collection"></param>
+    /// <returns></returns>
     public static string JoinToString(this IEnumerable<string> collection)
     {
         return string.Join(String.Empty, collection);
     }
 
+    /// <summary>
+    /// Extension that tries to Parse a string to short
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
     public static short? TryParseThisShort(this string field)
     {
         try
@@ -60,6 +84,11 @@ public static class MyOtherExtensions
         }
     }
 
+    /// <summary>
+    /// Extension that tries to Parse a string to bool
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
     public static bool TryParseThisBool(this string field)
     {
         try

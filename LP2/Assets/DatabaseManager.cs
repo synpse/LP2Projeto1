@@ -9,79 +9,177 @@ using System.Globalization;
 
 public class DatabaseManager : MonoBehaviour
 {
+    /// <summary>
+    /// ImputField that is used to search for entries
+    /// </summary>
     [SerializeField]
     private InputField inputField;
 
+    /// <summary>
+    /// TextBox that is used to display the info
+    /// </summary>
     [SerializeField]
     private Text infoTextBox;
 
+    /// <summary>
+    /// Buttons that are used to display all entries and used to interact
+    /// with them
+    /// </summary>
     [SerializeField]
     private Text[] buttonsText;
 
+    /// <summary>
+    /// DropDown that is used to filter by type
+    /// </summary>
     [SerializeField]
     private Dropdown typesDropDown;
 
+    /// <summary>
+    /// Textbox that is used to filter the minimum Start year
+    /// </summary>
     [SerializeField]
     private Text minStartYears;
 
+    /// <summary>
+    /// Textbox that is used to filter the maximum start year
+    /// </summary>
     [SerializeField]
     private Text maxStartYears;
 
+    /// <summary>
+    /// Textbox that is used to filter the minimum end year
+    /// </summary>
     [SerializeField]
     private Text minEndYears;
 
+    /// <summary>
+    /// Textbox that is used to filter the maximum end year
+    /// </summary>
     [SerializeField]
     private Text maxEndYears;
 
+    /// <summary>
+    /// Dropdown to filter for Adult Only or not
+    /// </summary>
     [SerializeField]
     private Dropdown adultsOnlyDropDown;
 
+    /// <summary>
+    /// Dropdown to filter by genre
+    /// </summary>
     [SerializeField]
     private Dropdown genresDropDown;
 
+    /// <summary>
+    /// Panel to show SubResults
+    /// </summary>
     [SerializeField]
     private GameObject entryPanel;
 
+    /// <summary>
+    /// Toggle Multy Type search
+    /// </summary>
     [SerializeField]
     private Toggle typesToggle;
 
+    /// <summary>
+    /// Toggles multy genre search
+    /// </summary>
     [SerializeField]
     private Toggle genresToggle;
 
+    /// <summary>
+    /// Dropdown that will appear is typesToggle is active
+    /// </summary>
     [SerializeField]
     private Dropdown typesDropDown2;
 
+    /// <summary>
+    /// Dropdown that will appear is genresToggle is active
+    /// </summary>
     [SerializeField]
     private Dropdown genresDropDown2;
 
+    /// <summary>
+    /// Dropdown that is used to filter by Rating
+    /// </summary>
     [SerializeField]
     private Dropdown ratingsDropDown;
 
+    /// <summary>
+    /// Button to show Scenes Info
+    /// </summary>
     [SerializeField]
     private Button entryButton;
 
+    /// <summary>
+    /// Panel to show the episodes
+    /// </summary>
     [SerializeField]
     private GameObject episodesPanel;
 
+    /// <summary>
+    /// Panel to show the seasons
+    /// </summary>
     [SerializeField]
     private GameObject seasonsPanel;
 
+    /// <summary>
+    /// Text that shows the current season number
+    /// </summary>
     [SerializeField]
     private Text seasonNumber;
 
+    /// <summary>
+    /// buttons where will be shown the episodes name and is used to
+    /// interact with them
+    /// </summary>
     [SerializeField]
     private Button[] episodeButtons;
 
+    /// <summary>
+    /// 
+    /// </summary>
     private Text entryPanelText;
 
+    /// <summary>
+    /// Name of the folder the files are on
+    /// </summary>
     private const string appName = "MyIMDBSearcher";
+
+    /// <summary>
+    /// Basics file name
+    /// </summary>
     private const string fileTitleBasics = "title.basics.tsv.gz";
+
+    /// <summary>
+    /// Ratings file name
+    /// </summary>
     private const string fileTitleRatings = "title.ratings.tsv.gz";
+
+    /// <summary>
+    /// Episodes file name
+    /// </summary>
     private const string fileTitleEpisodes = "title.episode.tsv.gz";
+
+    /// <summary>
+    /// Number of max entries that can be displayed on screen
+    /// </summary>
     private const int numMaxEntriesOnScreen = 10;
 
+    /// <summary>
+    /// Number of entries that are currently on screen
+    /// </summary>
     private int numEntriesOnScreen;
+
+    /// <summary>
+    /// Current page
+    /// </summary>
     private int page;
+
+    /// <summary>
+    /// Max pages
+    /// </summary>
     private int pages;
     private bool isParent;
     private short? seasonSeasons;
@@ -101,12 +199,18 @@ public class DatabaseManager : MonoBehaviour
     private Entry currentSelected;
     private Entry previousSelected;
 
+    /// <summary>
+    /// Start method to initialize DatabaseMethod
+    /// </summary>
     private void Start()
     {
         GetComponents();
         Initialize();
     }
 
+    /// <summary>
+    /// Updated method of the DatabaseMethod
+    /// </summary>
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Return))
@@ -138,6 +242,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// This method is used to GetComponents
+    /// </summary>
     private void GetComponents()
     {
         GameObject[] tempObj = 
@@ -157,6 +264,9 @@ public class DatabaseManager : MonoBehaviour
             episodeButtons[i] = tempObj[i].GetComponent<Button>();
     }
 
+    /// <summary>
+    /// This method is used to fetch the 3 databases
+    /// </summary>
     private void Initialize()
     {
         types = new HashSet<string>();
@@ -205,6 +315,9 @@ public class DatabaseManager : MonoBehaviour
         //delegate {ValueChangeCheck();});
     }
 
+    /// <summary>
+    /// This method is used to assign valued to the dropdowns menus
+    /// </summary>
     private void AssignDropdownValues()
     {
         // types
@@ -289,6 +402,11 @@ public class DatabaseManager : MonoBehaviour
         GC.Collect();
     }
 
+    /// <summary>
+    /// Method used to Read the database files
+    /// </summary>
+    /// <param name="file"></param>
+    /// <param name="lineAction"></param>
     private void Reader(
         string file, 
         Action<string> lineAction)
@@ -344,6 +462,7 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    
     public void GetEntryInfo(Button button)
     {
         // Get text from button child
@@ -372,6 +491,9 @@ public class DatabaseManager : MonoBehaviour
         PrintEntryInPanel();
     }
 
+    /// <summary>
+    /// Method used to print values into the SubResults Panel
+    /// </summary>
     private void PrintEntryInPanel()
     {
         if (currentSelected != null)
@@ -639,6 +761,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to display the current season
+    /// </summary>
     private void LoadEpisodesPanel()
     {
         LoadSeasons();
@@ -650,6 +775,9 @@ public class DatabaseManager : MonoBehaviour
         LoadEpisodes(currentSeason);
     }
 
+    /// <summary>
+    /// Method used to see the amount of seasons a show have
+    /// </summary>
     private void LoadSeasons()
     {
         seasonSeasons = null;
@@ -721,6 +849,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to return to the previous season
+    /// </summary>
     public void PreviousSeason()
     {
         if (currentSeason > 1)
@@ -731,6 +862,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to advance to the next season
+    /// </summary>
     public void NextSeason()
     {
         if (currentSeason < seasonSeasons)
@@ -741,11 +875,17 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that Opens entryPanel(SubResults Panel)
+    /// </summary>
     public void OpenPanel()
     {
         entryPanel.SetActive(true);
     }
 
+    /// <summary>
+    /// Method that closes entryPanel(SubResults Panel)
+    /// </summary>
     public void ClosePanel()
     {
         entryPanel.SetActive(false);
@@ -758,6 +898,9 @@ public class DatabaseManager : MonoBehaviour
         isParent = false;
     }
 
+    /// <summary>
+    /// Method used for when the user wants to go to the previous page
+    /// </summary>
     public void PreviousPage()
     {
         if (numEntriesOnScreen > 0)
@@ -768,6 +911,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that is used when user wants to advance for the next page
+    /// </summary>
     public void NextPage()
     {
         if (results != null)
@@ -781,6 +927,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used for when user wants to leave the program
+    /// </summary>
     public void Quit()
     {
         Application.Quit();
@@ -796,6 +945,10 @@ public class DatabaseManager : MonoBehaviour
         genresDropDown2.gameObject.SetActive(!genresDropDown2.IsActive());
     }
 
+    /// <summary>
+    /// Method used to print the results
+    /// </summary>
+    /// <param name="results"></param>
     private void PrintResults(Entry[] results)
     {
         infoTextBox.text = "";
@@ -858,6 +1011,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that filters results by type
+    /// </summary>
     public void FilterByType()
     {
         try
@@ -887,6 +1043,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that filters results by their start year
+    /// </summary>
     public void FilterByStartYear()
     {
         try
@@ -942,6 +1101,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that filters results by their end year
+    /// </summary>
     public void FilterByEndYear()
     {
         try
@@ -997,6 +1159,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that filters results by adult only
+    /// </summary>
     public void FilterByAdultOnly()
     {
         try
@@ -1025,6 +1190,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to filter the results by genre
+    /// </summary>
     public void FilterByGenre()
     {
         try
@@ -1100,6 +1268,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to filter the results by Rating
+    /// </summary>
     public void FilterByRating()
     {
         try
@@ -1224,6 +1395,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that orders the results by type
+    /// </summary>
     public void OrderByType()
     {
         try
@@ -1248,6 +1422,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that orders the results by name
+    /// </summary>
     public void OrderByName()
     {
         try
@@ -1272,6 +1449,9 @@ public class DatabaseManager : MonoBehaviour
         }      
     }
 
+    /// <summary>
+    /// Orders the results by if they are adult only or not
+    /// </summary>
     public void OrderByAdultOnly()
     {
         try
@@ -1297,6 +1477,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to order the results by Start year
+    /// </summary>
     public void OrderByStartYear()
     {
         try
@@ -1322,6 +1505,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to order the results by end year
+    /// </summary>
     public void OrderByEndYear()
     {
         try
@@ -1347,6 +1533,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to order the results by genre
+    /// </summary>
     public void OrderByGenre()
     {
         try
@@ -1373,6 +1562,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to order the results by rating
+    /// </summary>
     public void OrderByRating()
     {
         try
@@ -1398,6 +1590,31 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method that returns entries that contain a desired input
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    private Entry[] SelectEntries(string input)
+    {
+        return (from entry in entries
+
+                where (
+
+                entry.Value.MainTitle
+                .ToLower().Contains(input.ToLower()) ||
+
+                entry.Value.SecondaryTitle
+                .ToLower().Contains(input.ToLower()))
+
+                select entry.Value)
+                .ToArray();
+    }
+
+    /// <summary>
+    /// Method used to divide a line and add the respective values to an entrie
+    /// </summary>
+    /// <param name="line"></param>
     private void LineToEntry(string line)
     {
         string[] fields = line.Split('\t');
@@ -1490,6 +1707,55 @@ public class DatabaseManager : MonoBehaviour
             entryParentID,
             entrySeasonNumber,
             entryEpisodeNumber);
+    }
+
+    /// <summary>
+    /// Meethod used to add new entries
+    /// </summary>
+    /// <param name="entryID"></param>
+    /// <param name="entryType"></param>
+    /// <param name="entryMainTitle"></param>
+    /// <param name="entrySecondaryTitle"></param>
+    /// <param name="entryIsAdult"></param>
+    /// <param name="entryStartYear"></param>
+    /// <param name="entryEndYear"></param>
+    /// <param name="entryRuntimeMinutes"></param>
+    /// <param name="entryGenres"></param>
+    /// <param name="entryRating"></param>
+    /// <param name="entryParentID"></param>
+    /// <param name="entrySeasonNumber"></param>
+    /// <param name="entryEpisodeNumber"></param>
+    private void AddNewEntry(
+        string entryID,
+        string entryType,
+        string entryMainTitle,
+        string entrySecondaryTitle,
+        bool entryIsAdult,
+        short? entryStartYear,
+        short? entryEndYear,
+        short? entryRuntimeMinutes,
+        IEnumerable<string> entryGenres,
+        float? entryRating,
+        string entryParentID,
+        short? entrySeasonNumber,
+        short? entryEpisodeNumber)
+    {
+        Entry entry = new Entry(
+            entryID,
+            entryType,
+            entryMainTitle,
+            entrySecondaryTitle,
+            entryIsAdult,
+            entryStartYear,
+            entryEndYear,
+            entryRuntimeMinutes,
+            entryGenres.ToArray(),
+            entryRating,
+            entryParentID,
+            entrySeasonNumber,
+            entryEpisodeNumber);
+
+        entries.Add(entryID, entry);
     }
 
     private void LineToRating(string line)
@@ -1611,58 +1877,13 @@ public class DatabaseManager : MonoBehaviour
     private void AddRating(float? rating)
     {
         ratings.Add(rating);
-    }
+    }     
 
-
-    private void AddNewEntry(
-        string entryID,
-        string entryType,
-        string entryMainTitle,
-        string entrySecondaryTitle,
-        bool entryIsAdult,
-        short? entryStartYear,
-        short? entryEndYear,
-        short? entryRuntimeMinutes,
-        IEnumerable<string> entryGenres,
-        float? entryRating,
-        string entryParentID,
-        short? entrySeasonNumber,
-        short? entryEpisodeNumber)
-    {
-        Entry entry = new Entry(
-            entryID, 
-            entryType, 
-            entryMainTitle, 
-            entrySecondaryTitle, 
-            entryIsAdult, 
-            entryStartYear, 
-            entryEndYear, 
-            entryRuntimeMinutes, 
-            entryGenres.ToArray(),
-            entryRating,
-            entryParentID,
-            entrySeasonNumber,
-            entryEpisodeNumber);
-
-        entries.Add(entryID, entry);
-    }
-
-    private Entry[] SelectEntries(string input)
-    {
-        return (from entry in entries
-
-                where (
-
-                entry.Value.MainTitle
-                .ToLower().Contains(input.ToLower()) ||
-
-                entry.Value.SecondaryTitle
-                .ToLower().Contains(input.ToLower()))
-
-                select entry.Value)
-                .ToArray();
-    }
-
+    /// <summary>
+    /// Method used to count all results
+    /// </summary>
+    /// <param name="results"></param>
+    /// <returns></returns>
     private int CountResults(Entry[] results)
     {
         return results.Count();

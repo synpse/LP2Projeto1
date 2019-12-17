@@ -3,20 +3,35 @@ using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Profiling;
 
+/// <summary>
+/// Class used to show information about the program
+/// </summary>
 public class PerformanceManager : MonoBehaviour
 {
+    /// <summary>
+    /// 
+    /// </summary>
     private float deltaTime = 0.0f;
 
+    /// <summary>
+    /// Updated method of PerformanceManager
+    /// </summary>
     private void Update()
     {
         CalculateDelta();
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     private void CalculateDelta()
     {
         deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
     }
 
+    /// <summary>
+    /// Method to show information on GUI
+    /// </summary>
     private void OnGUI()
     {
         int w = Screen.width, h = Screen.height;
