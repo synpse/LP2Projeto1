@@ -288,7 +288,7 @@ ScriptsOnlyBuild:
     className: ControlPlayableAsset
   - hash:
       serializedVersion: 2
-      Hash: ccbc05aa3d08af543ea1e64824e7c966
+      Hash: 543f8ac0626d46c7a82f06f5836e8ada
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: DatabaseManager

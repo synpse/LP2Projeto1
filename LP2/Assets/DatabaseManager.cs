@@ -57,17 +57,35 @@ public class DatabaseManager : MonoBehaviour
     [SerializeField]
     private Dropdown ratingsDropDown;
 
+    [SerializeField]
+    private Button entryButton;
+
+    [SerializeField]
+    private GameObject episodesPanel;
+
+    [SerializeField]
+    private GameObject seasonsPanel;
+
+    [SerializeField]
+    private Text seasonNumber;
+
+    [SerializeField]
+    private Button[] episodeButtons;
+
     private Text entryPanelText;
 
     private const string appName = "MyIMDBSearcher";
     private const string fileTitleBasics = "title.basics.tsv.gz";
     private const string fileTitleRatings = "title.ratings.tsv.gz";
     private const string fileTitleEpisodes = "title.episode.tsv.gz";
-    private const int numMaxEntriesOnScreen = 11;
+    private const int numMaxEntriesOnScreen = 10;
 
     private int numEntriesOnScreen;
     private int page;
     private int pages;
+    private bool isParent;
+    private short? seasonSeasons;
+    private short? currentSeason;
 
     private Dictionary<string, float?> tempRatingEntries;
     private Dictionary<string, string[]> tempEpisodes;
@@ -81,6 +99,7 @@ public class DatabaseManager : MonoBehaviour
 
     private Entry[] results;
     private Entry currentSelected;
+    private Entry previousSelected;
 
     private void Start()
     {
@@ -104,28 +123,16 @@ public class DatabaseManager : MonoBehaviour
                 FilterByRating();
                 numEntriesOnScreen = 0;
                 page = 0;
-                pages = Mathf.CeilToInt(CountResults(results) / 
-                    numMaxEntriesOnScreen);
-                PrintResults(results);
-            }
-        }
 
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            if (numEntriesOnScreen < results.Length - numMaxEntriesOnScreen)
-            {
-                numEntriesOnScreen += numMaxEntriesOnScreen;
-                page++;
-                PrintResults(results);
-            }
-        }
+                float result = CountResults(results) % numMaxEntriesOnScreen;
 
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            if (numEntriesOnScreen > 0)
-            {
-                numEntriesOnScreen -= numMaxEntriesOnScreen;
-                page--;
+                if (result == 0)
+                    pages = Mathf.CeilToInt(
+                        CountResults(results) / numMaxEntriesOnScreen);
+                else
+                    pages = Mathf.CeilToInt(
+                        CountResults(results) / numMaxEntriesOnScreen) + 1;
+
                 PrintResults(results);
             }
         }
@@ -141,6 +148,13 @@ public class DatabaseManager : MonoBehaviour
             buttonsText[i] = tempObj[i].GetComponent<Text>();
 
         entryPanelText = entryPanel.GetComponentInChildren<Text>();
+
+        tempObj =
+            GameObject.FindGameObjectsWithTag("EpisodeButton");
+
+        episodeButtons = new Button[tempObj.Length];
+        for (int i = 0; i < tempObj.Length; i++)
+            episodeButtons[i] = tempObj[i].GetComponent<Button>();
     }
 
     private void Initialize()
@@ -184,6 +198,8 @@ public class DatabaseManager : MonoBehaviour
         AssignDropdownValues();
 
         CleanUp();
+
+        entryPanel.SetActive(false);
 
         //inputField.onValueChanged.AddListener(
         //delegate {ValueChangeCheck();});
@@ -353,6 +369,11 @@ public class DatabaseManager : MonoBehaviour
             i++;
         }
 
+        PrintEntryInPanel();
+    }
+
+    private void PrintEntryInPanel()
+    {
         if (currentSelected != null)
         {
             // Open entry info panel
@@ -364,6 +385,21 @@ public class DatabaseManager : MonoBehaviour
 
             if (currentSelected.Type == "tvSeries")
             {
+                if (previousSelected != null)
+                    if (!entryButton.gameObject.activeInHierarchy)
+                        entryButton.gameObject.SetActive(true);
+                else
+                    if (entryButton.gameObject.activeInHierarchy)
+                        entryButton.gameObject.SetActive(false);
+
+                if (!episodesPanel.gameObject.activeInHierarchy)
+                    episodesPanel.gameObject.SetActive(true);
+
+                if (!seasonsPanel.gameObject.activeInHierarchy)
+                    seasonsPanel.gameObject.SetActive(true);
+
+                LoadEpisodesPanel();
+
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
@@ -381,7 +417,7 @@ public class DatabaseManager : MonoBehaviour
 
                 entryPanelText.text +=
                     $"\t\tYear: " +
-                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+                    $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
@@ -415,6 +451,15 @@ public class DatabaseManager : MonoBehaviour
             }
             else if (currentSelected.Type == "tvEpisode")
             {
+                if (!entryButton.gameObject.activeInHierarchy)
+                    entryButton.gameObject.SetActive(true);
+
+                if (episodesPanel.gameObject.activeInHierarchy)
+                    episodesPanel.gameObject.SetActive(false);
+
+                if (seasonsPanel.gameObject.activeInHierarchy)
+                    seasonsPanel.gameObject.SetActive(false);
+
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
@@ -448,7 +493,7 @@ public class DatabaseManager : MonoBehaviour
 
                 entryPanelText.text +=
                     $"\t\tYear: " +
-                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+                    $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
@@ -482,10 +527,19 @@ public class DatabaseManager : MonoBehaviour
             }
             else
             {
+                if (entryButton.gameObject.activeInHierarchy)
+                    entryButton.gameObject.SetActive(false);
+
+                if (episodesPanel.gameObject.activeInHierarchy)
+                    episodesPanel.gameObject.SetActive(false);
+
+                if (seasonsPanel.gameObject.activeInHierarchy)
+                    seasonsPanel.gameObject.SetActive(false);
+
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
-                if (currentSelected.SecondaryTitle != 
+                if (currentSelected.SecondaryTitle !=
                     currentSelected.MainTitle)
                     entryPanelText.text +=
                         $":\t{currentSelected.SecondaryTitle}";
@@ -499,7 +553,7 @@ public class DatabaseManager : MonoBehaviour
 
                 entryPanelText.text +=
                     $"\t\tYear: " +
-                    $"{currentSelected.StartYear?.ToString()??"Unknown Year"}";
+                    $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
@@ -548,6 +602,145 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    public void ToParent()
+    {
+        if (isParent)
+        {
+            if (previousSelected != null)
+            {
+                currentSelected = previousSelected;
+                PrintEntryInPanel();
+
+                entryButton.GetComponentInChildren<Text>().text =
+                    $"See Parent Series";
+
+                isParent = false;
+            }
+            else
+            {
+                if (entryButton.gameObject.activeInHierarchy)
+                    entryButton.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+
+            previousSelected = currentSelected;
+
+            if (currentSelected.ParentID != null)
+                currentSelected = entries[currentSelected.ParentID];
+
+            PrintEntryInPanel();
+
+            entryButton.GetComponentInChildren<Text>().text =
+                $"Go Back";
+
+            isParent = true;
+        }
+    }
+
+    private void LoadEpisodesPanel()
+    {
+        LoadSeasons();
+
+        currentSeason = 1;
+
+        seasonNumber.text = $"Season {currentSeason}";
+
+        LoadEpisodes(currentSeason);
+    }
+
+    private void LoadSeasons()
+    {
+        seasonSeasons = null;
+
+        foreach (Entry entry in entries.Values)
+        {
+            if (entry.ParentID == currentSelected.ID)
+            {
+                if (seasonSeasons == null || 
+                    entry.SeasonNumber > seasonSeasons)
+                {
+                    seasonSeasons = entry.SeasonNumber;
+                }
+            }
+        }
+    }
+
+    public void LoadEpisode(Text buttonText)
+    {
+        if (buttonText.text != "")
+        {
+            foreach (Entry entry in entries.Values)
+            {
+                if (entry.MainTitle == buttonText.text)
+                {
+                    previousSelected = currentSelected;
+                    Debug.Log(currentSelected.ToString());
+                    currentSelected = entry;
+                    PrintEntryInPanel();
+
+                    entryButton.GetComponentInChildren<Text>().text =
+                        $"See Parent Series";
+
+                    isParent = true;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    private void LoadEpisodes(short? season)
+    {
+        List<Entry> episodes = new List<Entry>();
+        int i = 0;
+
+        CleanEpisodes();
+
+        foreach (Entry entry in entries.Values)
+        {
+            if (entry.ParentID == currentSelected.ID &&
+                entry.SeasonNumber == season)
+            {
+                episodes.Add(entry);
+
+                episodeButtons[i].GetComponentInChildren<Text>().text = 
+                episodes[i].MainTitle;
+
+                i++;
+            }
+        }
+    }
+
+    private void CleanEpisodes()
+    {
+        foreach (Button button in episodeButtons)
+        {
+            button.GetComponentInChildren<Text>().text = "";
+        }
+    }
+
+    public void PreviousSeason()
+    {
+        if (currentSeason > 1)
+        {
+            currentSeason--;
+            seasonNumber.text = $"Season {currentSeason}";
+            LoadEpisodes(currentSeason);
+        }
+    }
+
+    public void NextSeason()
+    {
+        if (currentSeason < seasonSeasons)
+        {
+            currentSeason++;
+            seasonNumber.text = $"Season {currentSeason}";
+            LoadEpisodes(currentSeason);
+        }
+    }
+
     public void OpenPanel()
     {
         entryPanel.SetActive(true);
@@ -556,6 +749,41 @@ public class DatabaseManager : MonoBehaviour
     public void ClosePanel()
     {
         entryPanel.SetActive(false);
+
+        entryButton.GetComponentInChildren<Text>().text =
+            $"See Parent Series";
+
+        previousSelected = null;
+
+        isParent = false;
+    }
+
+    public void PreviousPage()
+    {
+        if (numEntriesOnScreen > 0)
+        {
+            numEntriesOnScreen -= numMaxEntriesOnScreen;
+            page--;
+            PrintResults(results);
+        }
+    }
+
+    public void NextPage()
+    {
+        if (results != null)
+        {
+            if (numEntriesOnScreen < results.Length - numMaxEntriesOnScreen)
+            {
+                numEntriesOnScreen += numMaxEntriesOnScreen;
+                page++;
+                PrintResults(results);
+            }
+        }
+    }
+
+    public void Quit()
+    {
+        Application.Quit();
     }
 
     public void EnableTypesDropdown()
@@ -579,7 +807,7 @@ public class DatabaseManager : MonoBehaviour
 
         infoTextBox.text += $"\t{CountResults(results)} results found!";
 
-        infoTextBox.text += $"\t-\tPage {page + 1} of {pages + 1}";
+        infoTextBox.text += $"\t-\tPage {page + 1} of {pages}";
 
         int r = 0;
 
@@ -627,37 +855,6 @@ public class DatabaseManager : MonoBehaviour
                 buttonsText[r].text += $"None";
 
             r++;
-
-            /*
-            idTextBox.text +=
-                $"{entry.ID}\n";
-
-            typeTextBox.text +=
-                $"{entry.Type}\n";
-
-            titleTextBox.text +=
-                $"\t{entry.MainTitle}";
-
-            if (entry.SecondaryTitle != entry.MainTitle)
-                titleTextBox.text +=
-                    $":\t{entry.SecondaryTitle}";
-
-            titleTextBox.text += "\n";
-
-            yearsTextBox.text += 
-                $"{entry.StartYear?.ToString() ?? "Unknown Year"}";
-
-            if (entry.EndYear != null)
-                yearsTextBox.text +=
-                    $" - {entry.EndYear?.ToString()}";
-
-            yearsTextBox.text += "\n";
-
-            adultTextBox.text += "\n";
-
-
-            runtimeTextBox.text += "\n";
-            */
         }
     }
 
@@ -1031,16 +1228,19 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-            (from result in results
-             select result)
-            .OrderBy(result => result.Type)
-            .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                     select result)
+                    .OrderBy(result => result.Type)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);
+                PrintResults(results);
+            }
         }
         catch (Exception e)
         {
@@ -1052,16 +1252,19 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results = 
-            (from result in results
-             select result)
-            .OrderBy(result => result.MainTitle)
-            .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                    select result)
+                    .OrderBy(result => result.MainTitle)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);                   
+                PrintResults(results);
+            }                
         }
         catch(Exception e)
         {
@@ -1073,17 +1276,20 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-            (from result in results
-             select result)
-            .OrderBy(result => result.IsAdultOnly)
-            .Reverse()
-            .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                    select result)
+                    .OrderBy(result => result.IsAdultOnly)
+                    .Reverse()
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);
+                PrintResults(results);
+            }
         }
         catch (Exception e)
         {
@@ -1095,17 +1301,20 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-                (from result in results
-                 select result)
-                .OrderBy(result => result.StartYear)
-                .ThenBy(result => result.MainTitle)
-                .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                     select result)
+                    .OrderBy(result => result.StartYear)
+                    .ThenBy(result => result.MainTitle)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);
+                PrintResults(results);
+            }
         }
         catch (Exception e)
         {
@@ -1117,17 +1326,20 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-                (from result in results
-                 select result)
-                .OrderBy(result => result.EndYear)
-                .ThenBy(result => result.MainTitle)
-                .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                     select result)
+                    .OrderBy(result => result.EndYear)
+                    .ThenBy(result => result.MainTitle)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);
+                PrintResults(results);
+            }
         }
         catch (Exception e)
         {
@@ -1139,18 +1351,21 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-                (from result in results
-                 select result)
-                .OrderBy(result => String.Join(
-                    String.Empty, result.Genres.ToArray()))
-                .ThenBy(result => result.MainTitle)
-                .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                     select result)
+                    .OrderBy(result => String.Join(
+                        String.Empty, result.Genres.ToArray()))
+                    .ThenBy(result => result.MainTitle)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);           
+                PrintResults(results);
+            }        
         }
         catch (Exception e)
         {
@@ -1162,17 +1377,20 @@ public class DatabaseManager : MonoBehaviour
     {
         try
         {
-            results =
-                (from result in results
-                 select result)
-                .OrderBy(result => result.Rating)
-                .ThenBy(result => result.MainTitle)
-                .ToArray();
+            if (results != null)
+            {
+                results =
+                    (from result in results
+                     select result)
+                    .OrderBy(result => result.Rating)
+                    .ThenBy(result => result.MainTitle)
+                    .ToArray();
 
-            page = 0;
-            numEntriesOnScreen = 0;
+                page = 0;
+                numEntriesOnScreen = 0;
 
-            PrintResults(results);
+                PrintResults(results);
+            }
         }
         catch (Exception e)
         {
