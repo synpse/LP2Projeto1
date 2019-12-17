@@ -9066,7 +9066,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1916477615}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.06394898
+  m_Size: 0.06394899
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -47275,7 +47275,6 @@ GameObject:
   - component: {fileID: 1857851874}
   - component: {fileID: 1857851873}
   - component: {fileID: 1857851875}
-  - component: {fileID: 1857851876}
   m_Layer: 0
   m_Name: AppManager
   m_TagString: Untagged
@@ -47340,18 +47339,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 196344938e21f284f83d378f4ad8eb2b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &1857851876
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1857851872}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af9ebf97ee8ad894b8a3a1589fca9d45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1858440145

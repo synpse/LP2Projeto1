@@ -131,14 +131,14 @@ public class DatabaseManager : MonoBehaviour
     private Text seasonNumber;
 
     /// <summary>
-    /// buttons where will be shown the episodes name and is used to
+    /// Buttons where will be shown the episodes name and is used to
     /// interact with them
     /// </summary>
     [SerializeField]
     private Button[] episodeButtons;
 
     /// <summary>
-    /// 
+    /// Text to show detailed information of entries
     /// </summary>
     private Text entryPanelText;
 
@@ -181,23 +181,61 @@ public class DatabaseManager : MonoBehaviour
     /// Max pages
     /// </summary>
     private int pages;
-    private bool isParent;
-    private short? seasonSeasons;
-    private short? currentSeason;
 
+    /// <summary>
+    /// Is entry a parent?
+    /// </summary>
+    private bool isParent;
+
+    /// <summary>
+    /// Number of seasons of a series
+    /// </summary>
+    private byte? seasonSeasons;
+
+    /// <summary>
+    /// Current season of series
+    /// </summary>
+    private byte? currentSeason;
+
+    /// <summary>
+    /// Temporary entries with rating
+    /// </summary>
     private Dictionary<string, float?> tempRatingEntries;
+
+    /// <summary>
+    /// Temporary entries with episodes
+    /// </summary>
     private Dictionary<string, string[]> tempEpisodes;
 
     /// <summary>
     /// Dictionary that stores all the entries
     /// </summary>
     private Dictionary<string, Entry> entries;
+
+    /// <summary>
+    /// ISet to hold types
+    /// </summary>
     private ISet<string> types;
+
+    /// <summary>
+    /// ISet to hold start years
+    /// </summary>
     private ISet<short?> startYears;
+
+    /// <summary>
+    /// ISet to hold end years
+    /// </summary>
     private ISet<short?> endYears;
+
+    /// <summary>
+    /// ISet to hold adultsOnly
+    /// </summary>
     private ISet<bool> adultsOnly;
+
+    /// <summary>
+    /// ISet to hold genres
+    /// </summary>
     private ISet<string> genres;
-    private ISet<float?> ratings;
 
     /// <summary>
     /// Array of entries that stores the results
@@ -210,48 +248,68 @@ public class DatabaseManager : MonoBehaviour
     private Entry currentSelected;
 
     /// <summary>
-    /// Previous sekected entry
+    /// Previous selected entry
     /// </summary>
     private Entry previousSelected;
 
     /// <summary>
-    /// Start method to initialize DatabaseMethod
+    /// Start method of the Database Manager
     /// </summary>
     private void Start()
     {
+        // Get Components
         GetComponents();
+
+        // Initialize our database manager
         Initialize();
     }
 
     /// <summary>
-    /// Updated method of the DatabaseMethod
+    /// Update method of the Database Manager
     /// </summary>
     private void Update()
     {
+        // Wait for input in input field
         if (Input.GetKeyDown(KeyCode.Return))
         {
+            // Continue only if input field text is not empty
             if (inputField.text != null &&
                 inputField.text != "")
             {
+                // Select entries to results array using text from input field
                 results = SelectEntries(inputField.text);
+                // Filter by Type
                 FilterByType();
+                // Filter by Start Year
                 FilterByStartYear();
+                // Filter by End Year
                 FilterByEndYear();
+                // Filter by Adult Only
                 FilterByAdultOnly();
+                // Filter by Genre
                 FilterByGenre();
+                // Filter by Rating
                 FilterByRating();
+                // Set entries on screen to 0
                 numEntriesOnScreen = 0;
+                // Set current page to 0
                 page = 0;
 
+                // Get the remainder of results size and max entries on screen
                 float result = CountResults(results) % numMaxEntriesOnScreen;
 
+                // If remainder is 0
                 if (result == 0)
+                    // Ceil division of results size and max entries on screen
                     pages = Mathf.CeilToInt(
                         CountResults(results) / numMaxEntriesOnScreen);
+                // If remainder is not 0 
                 else
+                    // Add another page to results size and 
+                    // max entries on screen
                     pages = Mathf.CeilToInt(
                         CountResults(results) / numMaxEntriesOnScreen) + 1;
-
+                // Print the results
                 PrintResults(results);
             }
         }
@@ -262,19 +320,26 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     private void GetComponents()
     {
+        // Temporary array to hold GameObjects with ResultButton tag
         GameObject[] tempObj = 
             GameObject.FindGameObjectsWithTag("ResultButton");
 
+        // New array of Text from buttons
         buttonsText = new Text[tempObj.Length];
+        // Iterate and add with GetComponent<T>()
         for (int i = 0; i < tempObj.Length; i++)
             buttonsText[i] = tempObj[i].GetComponent<Text>();
 
+        // Get panel Text component
         entryPanelText = entryPanel.GetComponentInChildren<Text>();
 
+        // Reuse temporary array to hold GameObjects with EpisodeButton tag
         tempObj =
             GameObject.FindGameObjectsWithTag("EpisodeButton");
 
+        // New array of Button
         episodeButtons = new Button[tempObj.Length];
+        // Iterate and add with GetComponent<T>()
         for (int i = 0; i < tempObj.Length; i++)
             episodeButtons[i] = tempObj[i].GetComponent<Button>();
     }
@@ -284,46 +349,67 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     private void Initialize()
     {
+        // New HashSet<string> for types
         types = new HashSet<string>();
+        // New HashSet<short?> for startYears
         startYears = new HashSet<short?>();
+        // New HashSet<short?> for endYears
         endYears = new HashSet<short?>();
+        // New HashSet<bool> for adultsOnly
         adultsOnly = new HashSet<bool>();
+        // New HashSet<string> for genres
         genres = new HashSet<string>();
-        ratings = new HashSet<float?>();
 
+        // Hold directory path with persistant path for AppData/Local
+        // and combine with local path to app folder
         string directoryPath = Path.Combine(
             Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData),
             appName);
 
+        // Hold basics file path
+        // and combine with local path to folder
         string fileTitleBasicsFull = Path.Combine(
             directoryPath, 
             fileTitleBasics);
 
+        // Hold ratings file path
+        // and combine with local path to folder
         string fileTitleRatingsFull = Path.Combine(
             directoryPath,
             fileTitleRatings);
 
+        // Hold episodes file path
+        // and combine with local path to folder
         string fileTitleEpisodesFull = Path.Combine(
             directoryPath,
             fileTitleEpisodes);
 
+        // Initialize temporary Dictionary
         tempRatingEntries = new Dictionary<string, float?>();
 
+        // Initialize temporary Dictionary
         tempEpisodes = new Dictionary<string, string[]>();
 
+        // Initialize entries Dictionary (main dictionary)
         entries = new Dictionary<string, Entry>();
 
+        // Read ratings file
         Reader(fileTitleRatingsFull, LineToRating);
 
+        // Read episodes file
         Reader(fileTitleEpisodesFull, LineToEpisode);
 
+        // Read basics (main) file
         Reader(fileTitleBasicsFull, LineToEntry);
 
+        // Assign unique values to dropdowns
         AssignDropdownValues();
 
+        // Clean up what we can
         CleanUp();
 
+        // Start with entry window disabled
         entryPanel.SetActive(false);
 
         //inputField.onValueChanged.AddListener(
@@ -335,65 +421,79 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     private void AssignDropdownValues()
     {
-        // types
+        // Clear types dropdown
         typesDropDown.options.Clear();
 
+        // Add types to types dropdown
         foreach (string type in types)
         {
             typesDropDown.options.Add(
                 new Dropdown.OptionData(type));
         }
 
+        // Refresh types dropdown
         typesDropDown.RefreshShownValue();
 
+        // Clear types2 dropdown
         typesDropDown2.options.Clear();
 
+        // Add types2 to types dropdown
         foreach (string type in types)
         {
             typesDropDown2.options.Add(
                 new Dropdown.OptionData(type));
         }
 
+        // Refresh types2 dropdown
         typesDropDown2.RefreshShownValue();
 
-        // adults only
+        // Clear adults only dropdown
         adultsOnlyDropDown.options.Clear();
 
+        // Add adults only to adults only dropdown
         foreach (bool adultOnly in adultsOnly)
         {
             adultsOnlyDropDown.options.Add(
                 new Dropdown.OptionData(adultOnly.ToString()));
         }
 
+        // Refresh adults only dropdown
         adultsOnlyDropDown.RefreshShownValue();
 
-        // genres
+        // Clear genres dropdown
         genresDropDown.options.Clear();
 
+        // Add All option to genres dropdown
         genresDropDown.options.Add(new Dropdown.OptionData("All"));
 
+        // Add genres to genres dropdown
         foreach (string genre in genres)
         {
             genresDropDown.options.Add(new Dropdown.OptionData(genre));
         }
 
+        // Refresh genres dropdown
         genresDropDown.RefreshShownValue();
 
+        // Clear genres2 dropdown
         genresDropDown2.options.Clear();
 
+        // Add All option to genresw dropdown
         genresDropDown2.options.Add(new Dropdown.OptionData("All"));
 
+        // Add genres to genres2 dropdown
         foreach (string genre in genres)
         {
             genresDropDown2.options.Add(new Dropdown.OptionData(genre));
         }
 
+        // Refresh genres2 dropdown
         genresDropDown2.RefreshShownValue();
 
-        // ratings
-
+        // Clear ratings dropdown
         ratingsDropDown.options.Clear();
 
+        // Add all options to ratings dropdown
         ratingsDropDown.options.Add(new Dropdown.OptionData("All"));
         ratingsDropDown.options.Add(new Dropdown.OptionData("10"));
         ratingsDropDown.options.Add(new Dropdown.OptionData("9+"));
@@ -407,16 +507,20 @@ public class DatabaseManager : MonoBehaviour
         ratingsDropDown.options.Add(new Dropdown.OptionData("1+"));
         ratingsDropDown.options.Add(new Dropdown.OptionData("Unknown"));
 
+        // Refresh ratings dropdown
         ratingsDropDown.RefreshShownValue();
     }
 
     /// <summary>
-    /// Clears the temporary variables and calls garbage Collector
+    /// Clears the temporary dictionaries and force calls garbage Collector
     /// </summary>
     private void CleanUp()
     {
+        // Clear temporary rating entries
         tempRatingEntries.Clear();
+        // Clear temporary rating entries
         tempEpisodes.Clear();
+        // Force Garbage Collection
         GC.Collect();
     }
 
@@ -429,50 +533,69 @@ public class DatabaseManager : MonoBehaviour
         string file, 
         Action<string> lineAction)
     {
+        // Initialize FileStream as Null
         FileStream fs = null;
+        // Initialize GZipStream as Null
         GZipStream gzs = null;
+        // Initialize StreamReader as Null
         StreamReader sr = null;
 
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Open and read our file with FileStream
             fs = new FileStream(file, FileMode.Open, FileAccess.Read);
+            // Decompress with GZipStream
             gzs = new GZipStream(fs, CompressionMode.Decompress);
+            // Read with StreamReader
             sr = new StreamReader(gzs);
 
+            // Declare line
             string line;
 
+            // Read the first line (We don't want it)
             sr.ReadLine();
 
+            // While there are lines to read continue and
+            // assign read line to line
             while ((line = sr.ReadLine()) != null)
             {
+                // Invoke lineAction with line we just read as parameter
                 lineAction.Invoke(line);
             }
         }
+        // Catch and throw an exception
         catch (FileNotFoundException e)
         {
             Debug.LogWarning($"FILE NOT FOUND! " +
                 $"\n{e}");
         }
+        // Catch and throw an exception
         catch (IOException e)
         {
             Debug.LogError(e);
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError(e);
         }
+        // Finally close all streams
         finally
         {
+            // Close FileStream
             if (fs != null)
             {
                 fs.Close();
             }
 
+            // Close GZipStream
             if (gzs != null)
             {
                 gzs.Close();
             }
 
+            // Close StreamReader
             if (sr != null)
             {
                 sr.Close();
@@ -522,12 +645,16 @@ public class DatabaseManager : MonoBehaviour
             // Open entry info panel
             OpenPanel();
 
+            // Declare and initialize as true
             bool firstGenre = true;
 
+            // Set entry panel text to empty
             entryPanelText.text = "";
 
+            // If the current selected type is a series
             if (currentSelected.Type == "tvSeries")
             {
+                // Activate or deactivate entry button
                 if (previousSelected != null)
                     if (!entryButton.gameObject.activeInHierarchy)
                         entryButton.gameObject.SetActive(true);
@@ -535,39 +662,52 @@ public class DatabaseManager : MonoBehaviour
                     if (entryButton.gameObject.activeInHierarchy)
                         entryButton.gameObject.SetActive(false);
 
+                // Activate episodes panel
                 if (!episodesPanel.gameObject.activeInHierarchy)
                     episodesPanel.gameObject.SetActive(true);
 
+                // Activate seasons panel
                 if (!seasonsPanel.gameObject.activeInHierarchy)
                     seasonsPanel.gameObject.SetActive(true);
 
+                // Load episodes panel
                 LoadEpisodesPanel();
 
+                // Assign Main Title
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Rating
                 entryPanelText.text +=
                         $"\t\tRating: {currentSelected.Rating}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Type
                 entryPanelText.text +=
                     $"\t\tEntry Type: {currentSelected.Type}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign start year
                 entryPanelText.text +=
                     $"\t\tYear: " +
                     $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
+                // Assign End Year if it exists
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
                         $" - {currentSelected.EndYear?.ToString()}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign adult only
                 if (currentSelected.IsAdultOnly)
                     entryPanelText.text +=
                         $"\t\tAudience: Adult Only";
@@ -575,8 +715,10 @@ public class DatabaseManager : MonoBehaviour
                     entryPanelText.text +=
                         $"\t\tAudience: Everyone";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign all genres
                 foreach (string genre in currentSelected.Genres)
                 {
                     if (!firstGenre)
@@ -589,61 +731,82 @@ public class DatabaseManager : MonoBehaviour
                     firstGenre = false;
                 }
 
+                // Assign genre to none if it does not exist
                 if (currentSelected.Genres.JoinToString() == "")
                     entryPanelText.text += $"\t\tNone";
             }
+            // If current selected type is episode
             else if (currentSelected.Type == "tvEpisode")
             {
+                // Activate entry button
                 if (!entryButton.gameObject.activeInHierarchy)
                     entryButton.gameObject.SetActive(true);
 
+                // Deactivate episodes panel
                 if (episodesPanel.gameObject.activeInHierarchy)
                     episodesPanel.gameObject.SetActive(false);
 
+                // Deactivate seasons panel
                 if (seasonsPanel.gameObject.activeInHierarchy)
                     seasonsPanel.gameObject.SetActive(false);
 
+                // Assign Main Title
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign respective series Main Title
                 entryPanelText.text +=
                     $"\t\tSeries: " +
                     $"{entries[currentSelected.ParentID].MainTitle}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign season number
                 entryPanelText.text +=
                     $"\t\tSeason: {currentSelected.SeasonNumber}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign episode number
                 entryPanelText.text +=
                     $"\t\tEpisode: {currentSelected.EpisodeNumber}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Rating
                 entryPanelText.text +=
                         $"\t\tRating: {currentSelected.Rating}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Type
                 entryPanelText.text +=
                     $"\t\tEntry Type: {currentSelected.Type}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Start Year
                 entryPanelText.text +=
                     $"\t\tYear: " +
                     $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
+                // Assign End Year if not Null
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
                         $" - {currentSelected.EndYear?.ToString()}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign adult only
                 if (currentSelected.IsAdultOnly)
                     entryPanelText.text +=
                         $"\t\tAudience: Adult Only";
@@ -651,8 +814,10 @@ public class DatabaseManager : MonoBehaviour
                     entryPanelText.text +=
                         $"\t\tAudience: Everyone";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign genres
                 foreach (string genre in currentSelected.Genres)
                 {
                     if (!firstGenre)
@@ -665,45 +830,59 @@ public class DatabaseManager : MonoBehaviour
                     firstGenre = false;
                 }
 
+                // Assign genre to none if it does not exist
                 if (currentSelected.Genres.JoinToString() == "")
                     entryPanelText.text += $"\t\tNone";
             }
+            // Anything else
             else
             {
+                // Deactivate entryButton
                 if (entryButton.gameObject.activeInHierarchy)
                     entryButton.gameObject.SetActive(false);
 
+                // Deactivate episodesPanel
                 if (episodesPanel.gameObject.activeInHierarchy)
                     episodesPanel.gameObject.SetActive(false);
 
+                // Deactivate seasonsPanel
                 if (seasonsPanel.gameObject.activeInHierarchy)
                     seasonsPanel.gameObject.SetActive(false);
 
+                // Assign Main Title
                 entryPanelText.text +=
                     $"\t\t{currentSelected.MainTitle}";
 
+                // Assign Secondary Title if available
                 if (currentSelected.SecondaryTitle !=
                     currentSelected.MainTitle)
                     entryPanelText.text +=
                         $":\t{currentSelected.SecondaryTitle}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign type
                 entryPanelText.text +=
                     $"\t\tEntry Type: {currentSelected.Type}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign start year
                 entryPanelText.text +=
                     $"\t\tYear: " +
                     $"{currentSelected.StartYear?.ToString() ?? "Unknown Year"}";
 
+                // Assign end year if not null
                 if (currentSelected.EndYear != null)
                     entryPanelText.text +=
                         $" - {currentSelected.EndYear?.ToString()}";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Adult Only
                 if (currentSelected.IsAdultOnly)
                     entryPanelText.text +=
                         $"\t\tAudience: Adult Only";
@@ -711,8 +890,10 @@ public class DatabaseManager : MonoBehaviour
                     entryPanelText.text +=
                         $"\t\tAudience: Everyone";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Genres
                 foreach (string genre in currentSelected.Genres)
                 {
                     if (!firstGenre)
@@ -725,11 +906,14 @@ public class DatabaseManager : MonoBehaviour
                     firstGenre = false;
                 }
 
+                // Assign genre to none if it does not exist
                 if (currentSelected.Genres.JoinToString() == "")
                     entryPanelText.text += $"\t\tNone";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign runtime minutes if not null
                 if (currentSelected.RuntimeMinutes != null)
                     entryPanelText.text +=
                         $"\t\tRuntime: {currentSelected.RuntimeMinutes} min";
@@ -737,8 +921,10 @@ public class DatabaseManager : MonoBehaviour
                     entryPanelText.text +=
                         $"\t\tRuntime: Unknown";
 
+                // Paragraph
                 entryPanelText.text += "\n\n";
 
+                // Assign Rating
                 entryPanelText.text +=
                         $"\t\tRating: {currentSelected.Rating}";
             }
@@ -750,37 +936,49 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void ToParent()
     {
+        // If was parent
         if (isParent)
         {
+            // If previousSelected is not null
             if (previousSelected != null)
             {
+                // Current selected is now the previous selected
                 currentSelected = previousSelected;
+                // Print in panel
                 PrintEntryInPanel();
 
+                // Change entryButton text
                 entryButton.GetComponentInChildren<Text>().text =
                     $"See Parent Series";
 
+                // Not parent anymore
                 isParent = false;
             }
             else
             {
+                // Disable entryButton
                 if (entryButton.gameObject.activeInHierarchy)
                     entryButton.gameObject.SetActive(false);
             }
         }
         else
         {
-
+            // Previous selected is now our current selected
             previousSelected = currentSelected;
 
+            // If our current selected is not null
             if (currentSelected.ParentID != null)
+                // Current selected is now the respective season
                 currentSelected = entries[currentSelected.ParentID];
 
+            // Print in panel
             PrintEntryInPanel();
 
+            // Change entryButton text
             entryButton.GetComponentInChildren<Text>().text =
                 $"Go Back";
 
+            // Is now parent
             isParent = true;
         }
     }
@@ -790,12 +988,16 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     private void LoadEpisodesPanel()
     {
+        // Load available seasons
         LoadSeasons();
 
+        // Set current season to 1
         currentSeason = 1;
 
+        // Set season text to currentSeason
         seasonNumber.text = $"Season {currentSeason}";
 
+        // Load available episodes
         LoadEpisodes(currentSeason);
     }
 
@@ -804,15 +1006,23 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     private void LoadSeasons()
     {
+        // Set seasonSeasons to null
         seasonSeasons = null;
 
+        // Iterate over entry.Values
         foreach (Entry entry in entries.Values)
         {
+            // If current entry parent id is the same
+            // as currentSelected id
             if (entry.ParentID == currentSelected.ID)
             {
+                // If seasonSeasons is not null or
+                // current entry season number is bigger than
+                // seasonSeasons current value
                 if (seasonSeasons == null || 
                     entry.SeasonNumber > seasonSeasons)
                 {
+                    // Assign new value to seasonSeasons
                     seasonSeasons = entry.SeasonNumber;
                 }
             }
@@ -825,20 +1035,28 @@ public class DatabaseManager : MonoBehaviour
     /// <param name="buttonText"></param>
     public void LoadEpisode(Text buttonText)
     {
+        // If text on buttonText is not empty
         if (buttonText.text != "")
         {
+            // Iterate over entries.Values
             foreach (Entry entry in entries.Values)
             {
+                // if main title of entry equal button text
                 if (entry.MainTitle == buttonText.text)
                 {
+                    // previous selected is now the current selected
                     previousSelected = currentSelected;
                     Debug.Log(currentSelected.ToString());
+                    // Current selected is now the entry
                     currentSelected = entry;
+                    // Prints results in panel
                     PrintEntryInPanel();
 
+                    // Changes button text
                     entryButton.GetComponentInChildren<Text>().text =
                         $"See Parent Series";
 
+                    // Is now parent
                     isParent = true;
 
                     break;
@@ -853,30 +1071,45 @@ public class DatabaseManager : MonoBehaviour
     /// <param name="season"></param>
     private void LoadEpisodes(short? season)
     {
+        // Creates list with episodes
         List<Entry> episodes = new List<Entry>();
+        // Create int i to iterate over entries
         int i = 0;
 
+        // Clean episodes
         CleanEpisodes();
 
+        //Iterates over entrie.value
         foreach (Entry entry in entries.Values)
         {
+            // if entry.parentID equals currentSelected.ID and 
+            // entry.seasonNumber equals season
             if (entry.ParentID == currentSelected.ID &&
                 entry.SeasonNumber == season)
             {
+                // Adds entry to List of episodes
                 episodes.Add(entry);
 
+                // Changes text in current episode button to current episode
+                // MainTitle
                 episodeButtons[i].GetComponentInChildren<Text>().text = 
                 episodes[i].MainTitle;
 
+                // Next Episode
                 i++;
             }
         }
     }
 
+    /// <summary>
+    /// Clears all episode buttons names
+    /// </summary>
     private void CleanEpisodes()
     {
+        // Iterates over episodeButtons
         foreach (Button button in episodeButtons)
         {
+            // Clears button name
             button.GetComponentInChildren<Text>().text = "";
         }
     }
@@ -886,10 +1119,15 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void PreviousSeason()
     {
+        // if current season is greter than 1
         if (currentSeason > 1)
         {
+            // Current season decreases
             currentSeason--;
+
+            // Displays current season number
             seasonNumber.text = $"Season {currentSeason}";
+            // Loads episodes
             LoadEpisodes(currentSeason);
         }
     }
@@ -899,10 +1137,15 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void NextSeason()
     {
+        // if current season greater than seasonSeasons
         if (currentSeason < seasonSeasons)
         {
+            // Increases current Season
             currentSeason++;
+
+            // Displays current season
             seasonNumber.text = $"Season {currentSeason}";
+            // Loads current season episodes
             LoadEpisodes(currentSeason);
         }
     }
@@ -912,6 +1155,7 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OpenPanel()
     {
+        // Activates entry panel
         entryPanel.SetActive(true);
     }
 
@@ -920,13 +1164,16 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void ClosePanel()
     {
+        // Deactivates entryPanel
         entryPanel.SetActive(false);
 
+        // Changes entryButton text
         entryButton.GetComponentInChildren<Text>().text =
             $"See Parent Series";
 
+        // previous selected is now nill
         previousSelected = null;
-
+        // isParent is now false
         isParent = false;
     }
 
@@ -935,10 +1182,14 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void PreviousPage()
     {
+        //if number of entries on screen is greater than 0
         if (numEntriesOnScreen > 0)
         {
+            // Subtracts numMaxEntiesOnScreen to numEntriesOnScreen
             numEntriesOnScreen -= numMaxEntriesOnScreen;
+            // Decreases page
             page--;
+            // Prints results
             PrintResults(results);
         }
     }
@@ -948,12 +1199,18 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void NextPage()
     {
+        //If results are different of null
         if (results != null)
         {
+            // if numEntriesOnScreen is inferior to lengh of results minus
+            // numMaxEntriesOnScreen
             if (numEntriesOnScreen < results.Length - numMaxEntriesOnScreen)
             {
+                // numMaxEntriesOnScreen is added to numEntriesOnScreen
                 numEntriesOnScreen += numMaxEntriesOnScreen;
+                // Increases Page
                 page++;
+                // Prints results
                 PrintResults(results);
             }
         }
@@ -964,6 +1221,7 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void Quit()
     {
+        // Quits application
         Application.Quit();
     }
 
@@ -972,6 +1230,7 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void EnableTypesDropdown()
     {
+        // Activates or Deactivates Second type dropdown
         typesDropDown2.gameObject.SetActive(!typesDropDown2.IsActive());
     }
 
@@ -980,6 +1239,7 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void EnableGenresDropdown()
     {
+        // Activates or Deactivates Second genre dropdown
         genresDropDown2.gameObject.SetActive(!genresDropDown2.IsActive());
     }
 
@@ -989,49 +1249,62 @@ public class DatabaseManager : MonoBehaviour
     /// <param name="results"></param>
     private void PrintResults(Entry[] results)
     {
+        // Resets infoTextBox text
         infoTextBox.text = "";
 
+        // Iterates over buttonsText
         foreach (Text buttonText in buttonsText)
         {
+            // Resets button text
             buttonText.text = "";
         }
 
+        // Displays amount of results
         infoTextBox.text += $"\t{CountResults(results)} results found!";
 
+        // Displays number of pages
         infoTextBox.text += $"\t-\tPage {page + 1} of {pages}";
 
+        // Creates int r
         int r = 0;
 
-        // Mostrar próximos 10
+        // Shows next 10
         for (int i = numEntriesOnScreen;
         i < numEntriesOnScreen + numMaxEntriesOnScreen
             && i < results.Length;
         i++)
         {
-            // Usar para melhorar a forma como mostramos os géneros
+            // Used to improve the way we display genres
             bool firstGenre = true;
 
             // Obter titulo atual
             Entry entry = results[i];
 
+            // Displays on Button the title
             buttonsText[r].text +=
                 $"{entry.MainTitle}";
 
+            // If SecondaryTitle is different from MainTitle
             if (entry.SecondaryTitle != entry.MainTitle)
                 buttonsText[r].text +=
                     $":\t{entry.SecondaryTitle}";
 
+            // Separate result fields
             buttonsText[r].text += "\t\t|\t\t";
 
+            // Assign start year
             buttonsText[r].text +=
                     $"{entry.StartYear?.ToString() ?? "Unknown Year"}";
 
+            // Assign end year if not null
             if (entry.EndYear != null)
                 buttonsText[r].text +=
                     $" - {entry.EndYear?.ToString()}";
 
+            // Separate result fields
             buttonsText[r].text += "\t\t|\t\t";
 
+            // Assign genres
             foreach (string genre in entry.Genres)
             {
                 if (!firstGenre)
@@ -1042,9 +1315,11 @@ public class DatabaseManager : MonoBehaviour
                 firstGenre = false;
             }
 
+            // Assign genre as none if there are not genres
             if (entry.Genres.JoinToString() == "")
                 buttonsText[r].text += $"None";
 
+            // Next r
             r++;
         }
     }
@@ -1054,8 +1329,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByType()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter results by type 1 and type 2
             results =
                 (from result in results
 
@@ -1075,6 +1352,7 @@ public class DatabaseManager : MonoBehaviour
                  select result)
                 .ToArray();
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByGenre ERROR: " + e);
@@ -1086,8 +1364,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByStartYear()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter Results by start year range
             if (minStartYears.text == "" &&
                 maxStartYears.text != "")
             {
@@ -1133,6 +1413,7 @@ public class DatabaseManager : MonoBehaviour
                     .ToArray();
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByStartYear ERROR: " + e);
@@ -1144,8 +1425,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByEndYear()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter Results by end year range
             if (minEndYears.text == "" &&
                 maxEndYears.text != "")
             {
@@ -1191,6 +1474,7 @@ public class DatabaseManager : MonoBehaviour
                     .ToArray();
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByEndYear ERROR: " + e);
@@ -1202,8 +1486,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByAdultOnly()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter Results by adult only
             if (adultsOnlyDropDown.options
                 [adultsOnlyDropDown.value].text != "All")
             {
@@ -1222,6 +1508,7 @@ public class DatabaseManager : MonoBehaviour
                     .ToArray();
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByAdultsOnly ERROR: " + e);
@@ -1233,8 +1520,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByGenre()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter Results by genre
             if (genresDropDown
                 .options[genresDropDown.value].text != "All" &&
                 genresDropDown2
@@ -1300,6 +1589,7 @@ public class DatabaseManager : MonoBehaviour
                     .ToArray();
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByGenre ERROR: " + e);
@@ -1311,8 +1601,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void FilterByRating()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Filter Results by Rating
             if (ratingsDropDown.options
                 [ratingsDropDown.value].text != "All")
             {
@@ -1427,6 +1719,7 @@ public class DatabaseManager : MonoBehaviour
                             .ToArray();
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("FilterByAdultsOnly ERROR: " + e);
@@ -1438,8 +1731,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByType()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by type if results are not null
             if (results != null)
             {
                 results =
@@ -1454,6 +1749,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByType ERROR: " + e);
@@ -1465,8 +1761,10 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByName()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by Name if results are not null
             if (results != null)
             {
                 results =
@@ -1481,7 +1779,8 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }                
         }
-        catch(Exception e)
+        // Catch and throw an exception
+        catch (Exception e)
         {
             Debug.LogError("OrderByName ERROR: " + e);
         }      
@@ -1492,8 +1791,11 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByAdultOnly()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by adultOnly if results are not null
+            // Then reverse the results array
             if (results != null)
             {
                 results =
@@ -1509,6 +1811,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByAdultOnly ERROR: " + e);
@@ -1520,8 +1823,11 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByStartYear()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by start year if results are not null
+            // Then by MainTitle
             if (results != null)
             {
                 results =
@@ -1537,6 +1843,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByStartYear ERROR: " + e);
@@ -1548,8 +1855,11 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByEndYear()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by end year if results are not null
+            // Then by MainTitle
             if (results != null)
             {
                 results =
@@ -1565,6 +1875,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByEndYear ERROR: " + e);
@@ -1576,8 +1887,11 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByGenre()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by genre if results are not null
+            // Then by MainTitle
             if (results != null)
             {
                 results =
@@ -1594,6 +1908,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }        
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByGenre ERROR: " + e);
@@ -1605,8 +1920,11 @@ public class DatabaseManager : MonoBehaviour
     /// </summary>
     public void OrderByRating()
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Order by rating if results are not null
+            // Then by MainTitle
             if (results != null)
             {
                 results =
@@ -1622,6 +1940,7 @@ public class DatabaseManager : MonoBehaviour
                 PrintResults(results);
             }
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             Debug.LogError("OrderByRating ERROR: " + e);
@@ -1632,9 +1951,12 @@ public class DatabaseManager : MonoBehaviour
     /// Method that returns entries that contain a desired input
     /// </summary>
     /// <param name="input"></param>
-    /// <returns></returns>
+    /// <returns>Returns an array of Entry</returns>
     private Entry[] SelectEntries(string input)
     {
+        // Select entries which contain inputField text
+        // in its Main Title or Secondary Title
+
         return (from entry in entries
 
                 where (
@@ -1650,11 +1972,14 @@ public class DatabaseManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Method used to divide a line and add the respective values to an entrie
+    /// Method called by reader in each line 
+    /// to add new create all Entry fields, join temporary entries 
+    /// and call AddNewEntry() method
     /// </summary>
     /// <param name="line"></param>
     private void LineToEntry(string line)
     {
+        // Split to array of fields
         string[] fields = line.Split('\t');
 
         // ID
@@ -1682,12 +2007,17 @@ public class DatabaseManager : MonoBehaviour
         short? entryRuntimeMinutes = TryParseShort(fields[7]);
 
         // Genres
+        // Split to array of strings
         string[] entryTitleGenres = fields[8].Split(',');
+        // Make new ICollection (List) of genres
         ICollection<string> entryGenres = new List<string>();
 
         // Rating
         float? entryRating = null;
 
+        // If temporary dictionary of rating entries
+        // contains entryID (key)
+        // Set entryRating
         if (tempRatingEntries.ContainsKey(entryID))
             entryRating = tempRatingEntries[entryID];
 
@@ -1695,21 +2025,27 @@ public class DatabaseManager : MonoBehaviour
         string entryParentID = null;
 
         // Season Number
-        short? entrySeasonNumber = null;
+        byte? entrySeasonNumber = null;
 
         // Episode Number
-        short? entryEpisodeNumber = null;
+        byte? entryEpisodeNumber = null;
 
+        // If temporary dictionary of episode entries
+        // contains entryID (key)
+        // Set fields
         if (tempEpisodes.ContainsKey(entryID))
         {
+            // Set parent id
             entryParentID =
                 tempEpisodes[entryID].GetValue(1).ToString();
 
+            // Set season number
             entrySeasonNumber =
-                TryParseShort(tempEpisodes[entryID].GetValue(2).ToString());
+                TryParseByte(tempEpisodes[entryID].GetValue(2).ToString());
 
+            // Set episode number
             entryEpisodeNumber =
-                TryParseShort(tempEpisodes[entryID].GetValue(3).ToString());
+                TryParseByte(tempEpisodes[entryID].GetValue(3).ToString());
         }
 
         // Add type to our types list
@@ -1748,7 +2084,7 @@ public class DatabaseManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Meethod used to add new entries
+    /// Method used to add new entries
     /// </summary>
     /// <param name="entryID"></param>
     /// <param name="entryType"></param>
@@ -1775,9 +2111,10 @@ public class DatabaseManager : MonoBehaviour
         IEnumerable<string> entryGenres,
         float? entryRating,
         string entryParentID,
-        short? entrySeasonNumber,
-        short? entryEpisodeNumber)
+        byte? entrySeasonNumber,
+        byte? entryEpisodeNumber)
     {
+        // Make new entry with all passed parameters
         Entry entry = new Entry(
             entryID,
             entryType,
@@ -1793,11 +2130,18 @@ public class DatabaseManager : MonoBehaviour
             entrySeasonNumber,
             entryEpisodeNumber);
 
+        // Add entry to entries
         entries.Add(entryID, entry);
     }
 
+    /// <summary>
+    /// Method called by reader in each line 
+    /// to add new temporary Rating entry
+    /// </summary>
+    /// <param name="line"></param>
     private void LineToRating(string line)
     {
+        // Split line with tabs to array of fields
         string[] fields = line.Split('\t');
 
         // ID
@@ -1806,28 +2150,44 @@ public class DatabaseManager : MonoBehaviour
         // Rating
         float? entryRating = TryParseFloat(fields[1]);
 
-        AddRating(entryRating);
-
+        // Add Temp Rating
         tempRatingEntries.Add(entryID, entryRating);
     }
 
+    /// <summary>
+    /// Method called by reader in each line 
+    /// to add new temporary Episode entry
+    /// </summary>
+    /// <param name="line"></param>
     private void LineToEpisode(string line)
     {
+        // Split line with tabs to array of fields
         string[] fields = line.Split('\t');
 
+        // Add Temp Episode
         tempEpisodes.Add(fields[0], fields);
     }
 
-    public short? TryParseShort(string field)
+    /// <summary>
+    /// Method used try and parse a string to nullable short
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns>Returns a nullable short</returns>
+    private short? TryParseShort(string field)
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Auxiliary variable
             short aux;
 
+            // Try Parse our field as a nullable short
+            // If we can't parse it as a short make it null
             return short.TryParse(field, out aux)
                 ? (short?)aux
                 : null;
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             throw new InvalidOperationException(
@@ -1837,20 +2197,61 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    public float? TryParseFloat(string field)
+    /// <summary>
+    /// Method used try and parse a string to nullable byte
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns>Returns a nullable byte</returns>
+    private byte? TryParseByte(string field)
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Auxiliary variable
+            byte aux;
+
+            // Try Parse our field as a nullable byte
+            // If we can't parse it as a byte make it null
+            return byte.TryParse(field, out aux)
+                ? (byte?)aux
+                : null;
+        }
+        // Catch and throw an exception
+        catch (Exception e)
+        {
+            throw new InvalidOperationException(
+                $"Tried to parse '{field}' as byte?, " +
+                $"but got exception '{e.Message}'"
+                + $" with this stack trace: {e.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Method used try and parse a string to nullable float
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns>Returns a nullable float</returns>
+    private float? TryParseFloat(string field)
+    {
+        // Try in order to prevent bugs that break our application
+        try
+        {
+            // Auxiliary variable
             float aux;
+
+            // Properly format
             NumberStyles style = 
                 NumberStyles.Number | NumberStyles.AllowCurrencySymbol;
             CultureInfo culture = 
                 CultureInfo.CreateSpecificCulture("en-US");
 
+            // Try Parse our field as a nullable float
+            // If we can't parse it as a float make it null
             return float.TryParse(field, style, culture, out aux)
                 ? (float?)aux
                 : null;
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             throw new InvalidOperationException(
@@ -1860,15 +2261,24 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    public bool TryParseBool(string field)
+    /// <summary>
+    /// Method used try and parse a string to boolean
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns>Returns a boolean</returns>
+    private bool TryParseBool(string field)
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // If our field is 0 make our bool false
             if (field == "0")
                 return false;
+            // If our field is not 0 make our bool true
             else
                 return true;
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             throw new InvalidOperationException(
@@ -1878,52 +2288,90 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to check for invalid genres on respective ICollection
+    /// </summary>
+    /// <param name="entryGenres"></param>
+    /// <param name="titleGenres"></param>
     private void CheckInvalidGenres(
         ICollection<string> entryGenres, 
         string[] titleGenres)
     {
+        // Check for valid genres
+        // Iterate through genres in titleGenres
         foreach (string genre in titleGenres)
+            // If genre is not null and genre is bigger than 0 and genre
+            // is valid
+            // Add genre to entryGenres
             if (genre != null && genre.Length > 0 && genre != @"\N")
                 entryGenres.Add(genre);
     }
 
+    /// <summary>
+    /// Method used to add types to respective ISet
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
     private void AddType(string type)
     {
+        // Add type to ISet
         types.Add(type);
     }
 
+    /// <summary>
+    /// Method used to add start years to respective ISet
+    /// </summary>
+    /// <param name="startYear"></param>
+    /// <returns></returns>
     private void AddStartYear(short? startYear)
     {
+        // Add StartYear to ISet
         startYears.Add(startYear);
     }
 
+    /// <summary>
+    /// Method used to add end years to respective ISet
+    /// </summary>
+    /// <param name="endYear"></param>
+    /// <returns></returns>
     private void AddEndYear(short? endYear)
     {
+        // Add EndYear to ISet
         endYears.Add(endYear);
     }
 
+    /// <summary>
+    /// Method used to add adultOnly to respective ISet
+    /// </summary>
+    /// <param name="adultOnly"></param>
+    /// <returns></returns>
     private void AddAdultOnly(bool adultOnly)
     {
+        // Add AdultOnly to ISet
         adultsOnly.Add(adultOnly);
     }
 
+    /// <summary>
+    /// Method used to add genres to respective ISet
+    /// </summary>
+    /// <param name="entryGenres"></param>
+    /// <returns></returns>
     private void AddGenres(ICollection<string> entryGenres)
     {
+        // Add all genres to Iset
+        // Iterate over genres
         foreach (string genre in entryGenres)
             genres.Add(genre);
     }
-    private void AddRating(float? rating)
-    {
-        ratings.Add(rating);
-    }     
 
     /// <summary>
     /// Method used to count all results
     /// </summary>
     /// <param name="results"></param>
-    /// <returns></returns>
+    /// <returns>Returns an int with size of results array</returns>
     private int CountResults(Entry[] results)
     {
+        // Count our results
         return results.Count();
     }
 }

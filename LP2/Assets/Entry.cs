@@ -3,27 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// This class is used to store all information
+/// This class is used to store all information of an Entry / Title
 /// </summary>
 public class Entry
 {
     /// <summary>
-    /// Stores an ID of one entrie
+    /// Stores an ID of one entry
     /// </summary>
     public string ID { get; }
 
     /// <summary>
-    /// Stores a Type of one entrie
+    /// Stores a Type of one entry
     /// </summary>
     public string Type { get; }
 
     /// <summary>
-    /// Stores a MainTitle of one entrie
+    /// Stores a MainTitle of one entry
     /// </summary>
     public string MainTitle { get; }
 
     /// <summary>
-    /// Stores a SecondaryTitle of one entrie
+    /// Stores a SecondaryTitle of one entry
     /// </summary>
     public string SecondaryTitle { get; }
 
@@ -33,47 +33,47 @@ public class Entry
     public bool IsAdultOnly { get; }
 
     /// <summary>
-    /// Stores the start Year of the entrie(can be null)
+    /// Stores the start Year of the entry(can be null)
     /// </summary>
     public short? StartYear { get; }
 
     /// <summary>
-    /// Stores end year of entrie(can be null)
+    /// Stores end year of entry(can be null)
     /// </summary>
     public short? EndYear { get; }
 
     /// <summary>
-    /// Stores the amount of minutes entrie has(can be null)
+    /// Stores the amount of minutes entry has(can be null)
     /// </summary>
     public short? RuntimeMinutes { get; }
 
     /// <summary>
-    /// Stores all genres entrie can have
+    /// Stores all genres entry can have
     /// </summary>
     public IEnumerable<string> Genres { get; }
 
     /// <summary>
-    /// stores Rating of entrie(can be null)
+    /// stores Rating of entry(can be null)
     /// </summary>
     public float? Rating { get; }
 
     /// <summary>
-    /// Stores ParentID of entrie
+    /// Stores ParentID of entry
     /// </summary>
     public string ParentID { get; }
 
     /// <summary>
-    /// Stores seasonNumber of entrie(can be null)
+    /// Stores seasonNumber of entry(can be null)
     /// </summary>
-    public short? SeasonNumber { get; }
+    public byte? SeasonNumber { get; }
 
     /// <summary>
-    /// Stores episode number of entrie(can be null)
+    /// Stores episode number of entry(can be null)
     /// </summary>
-    public short? EpisodeNumber { get; }
+    public byte? EpisodeNumber { get; }
 
     /// <summary>
-    /// Constructor of entrie
+    /// Constructor of Entry
     /// </summary>
     /// <param name="ID"></param>
     /// <param name="Type"></param>
@@ -100,9 +100,10 @@ public class Entry
         IEnumerable<string> Genres,
         float? Rating,
         string ParentID,
-        short? SeasonNumber,
-        short? EpisodeNumber)
+        byte? SeasonNumber,
+        byte? EpisodeNumber)
     {
+        // Run Entry Contructor
         this.ID = ID;
         this.Type = Type;
         this.MainTitle = MainTitle;

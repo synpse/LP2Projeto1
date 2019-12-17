@@ -8,56 +8,13 @@ using System.IO;
 public static class MyOtherExtensions
 {
     /// <summary>
-    /// Extension used to check is an array of strings has some specific value
-    /// </summary>
-    /// <param name="values"></param>
-    /// <param name="searchedValue"></param>
-    /// <returns></returns>
-    public static bool HasValue(this string[] values, string searchedValue)
-    {
-        foreach (string value in values)
-        {
-            if (value.Contains(searchedValue))
-                return true;
-            else
-                return false;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Extension that is used to remove duplicates from a dictionary
-    /// </summary>
-    /// <param name="dict"></param>
-    /// <returns></returns>
-    public static Dictionary<string, string[]> RemoveDuplicates(
-        this Dictionary<string, string[]> dict)
-    {
-        HashSet<string[]> knownValues =
-            new HashSet<string[]>();
-
-        Dictionary<string, string[]> dbDictUniques =
-            new Dictionary<string, string[]>();
-
-        foreach (KeyValuePair<string, string[]> pair in dict)
-        {
-            if (knownValues.Add(pair.Value))
-            {
-                dbDictUniques.Add(pair.Key, pair.Value);
-            }
-        }
-
-        return dbDictUniques;
-    }
-
-    /// <summary>
     /// Extension used to join an Ineumerable of strings
     /// </summary>
     /// <param name="collection"></param>
-    /// <returns></returns>
+    /// <returns>Returns a string from an IEnumerable of strings</returns>
     public static string JoinToString(this IEnumerable<string> collection)
     {
+        // Join IEnumerable of strings with nothing as a separator
         return string.Join(String.Empty, collection);
     }
 
@@ -65,21 +22,26 @@ public static class MyOtherExtensions
     /// Extension that tries to Parse a string to short
     /// </summary>
     /// <param name="field"></param>
-    /// <returns></returns>
+    /// <returns>Returns a nullable short</returns>
     public static short? TryParseThisShort(this string field)
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // Auxiliary variable
             short aux;
 
+            // Try Parse our field as a nullable short
+            // If we can't parse it as a short make it null
             return short.TryParse(field, out aux)
                 ? (short?)aux
                 : null;
         }
+        // Catch and throw an exception
         catch (Exception e)
         {
             throw new InvalidOperationException(
-                $"Tried to parse '{field}', but got exception '{e.Message}'"
+                $"Tried to parse '{field}' short?, but got exception '{e.Message}'"
                 + $" with this stack trace: {e.StackTrace}");
         }
     }
@@ -88,18 +50,22 @@ public static class MyOtherExtensions
     /// Extension that tries to Parse a string to bool
     /// </summary>
     /// <param name="field"></param>
-    /// <returns></returns>
+    /// <returns>Returns a boolean</returns>
     public static bool TryParseThisBool(this string field)
     {
+        // Try in order to prevent bugs that break our application
         try
         {
+            // If our field is 0 make our bool false
             if (field == "0")
                 return false;
+            // If our field is not 0 make our bool true
             else
                 return true;
         }
         catch (Exception e)
         {
+            // Catch and throw an exception
             throw new InvalidOperationException(
                 $"Tried to parse '{field}', but got exception '{e.Message}'"
                 + $" with this stack trace: {e.StackTrace}");
