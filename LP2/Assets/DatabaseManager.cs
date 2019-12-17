@@ -187,6 +187,10 @@ public class DatabaseManager : MonoBehaviour
 
     private Dictionary<string, float?> tempRatingEntries;
     private Dictionary<string, string[]> tempEpisodes;
+
+    /// <summary>
+    /// Dictionary that stores all the entries
+    /// </summary>
     private Dictionary<string, Entry> entries;
     private ISet<string> types;
     private ISet<short?> startYears;
@@ -195,8 +199,19 @@ public class DatabaseManager : MonoBehaviour
     private ISet<string> genres;
     private ISet<float?> ratings;
 
+    /// <summary>
+    /// Array of entries that stores the results
+    /// </summary>
     private Entry[] results;
+
+    /// <summary>
+    /// Current selected entry
+    /// </summary>
     private Entry currentSelected;
+
+    /// <summary>
+    /// Previous sekected entry
+    /// </summary>
     private Entry previousSelected;
 
     /// <summary>
@@ -395,6 +410,9 @@ public class DatabaseManager : MonoBehaviour
         ratingsDropDown.RefreshShownValue();
     }
 
+    /// <summary>
+    /// Clears the temporary variables and calls garbage Collector
+    /// </summary>
     private void CleanUp()
     {
         tempRatingEntries.Clear();
@@ -462,7 +480,10 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
-    
+    /// <summary>
+    /// Method used to get info of a specific entry
+    /// </summary>
+    /// <param name="button"></param>
     public void GetEntryInfo(Button button)
     {
         // Get text from button child
@@ -724,6 +745,9 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to go from an episode to is respective serie
+    /// </summary>
     public void ToParent()
     {
         if (isParent)
@@ -795,6 +819,10 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method used to Load one episode of a specific entry
+    /// </summary>
+    /// <param name="buttonText"></param>
     public void LoadEpisode(Text buttonText)
     {
         if (buttonText.text != "")
@@ -819,6 +847,10 @@ public class DatabaseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Method the Loads all episodes of a specific entry
+    /// </summary>
+    /// <param name="season"></param>
     private void LoadEpisodes(short? season)
     {
         List<Entry> episodes = new List<Entry>();
@@ -935,11 +967,17 @@ public class DatabaseManager : MonoBehaviour
         Application.Quit();
     }
 
+    /// <summary>
+    /// Method that enables the second type Dropdown menu
+    /// </summary>
     public void EnableTypesDropdown()
     {
         typesDropDown2.gameObject.SetActive(!typesDropDown2.IsActive());
     }
 
+    /// <summary>
+    /// Method that enables the second genre Dropdown menu
+    /// </summary>
     public void EnableGenresDropdown()
     {
         genresDropDown2.gameObject.SetActive(!genresDropDown2.IsActive());
